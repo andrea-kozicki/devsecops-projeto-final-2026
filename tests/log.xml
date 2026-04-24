@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="/srv/www/htdocs/devsecops-projeto-final-2026/phpunit.xml" tests="8" assertions="11" errors="0" failures="0" skipped="0" time="1.053490">
+    <testsuite name="Testes unitários StudyBoard" tests="8" assertions="11" errors="0" failures="0" skipped="0" time="1.053490">
+      <testsuite name="CadastrarUsuarioTest" file="/srv/www/htdocs/devsecops-projeto-final-2026/tests/auth-service/CadastrarUsuarioTest.php" tests="3" assertions="4" errors="0" failures="0" skipped="0" time="1.051852">
+        <testcase name="testCadastroUsuarioComDadosValidos" file="/srv/www/htdocs/devsecops-projeto-final-2026/tests/auth-service/CadastrarUsuarioTest.php" line="11" class="CadastrarUsuarioTest" classname="CadastrarUsuarioTest" assertions="1" time="0.004196"/>
+        <testcase name="testCadastroUsuarioSemEmailDeveFalhar" file="/srv/www/htdocs/devsecops-projeto-final-2026/tests/auth-service/CadastrarUsuarioTest.php" line="24" class="CadastrarUsuarioTest" classname="CadastrarUsuarioTest" assertions="1" time="0.000344"/>
+        <testcase name="testSenhaNaoPodeSerArmazenadaEmTextoPuro" file="/srv/www/htdocs/devsecops-projeto-final-2026/tests/auth-service/CadastrarUsuarioTest.php" line="37" class="CadastrarUsuarioTest" classname="CadastrarUsuarioTest" assertions="2" time="1.047312"/>
+      </testsuite>
+      <testsuite name="CadastrarTarefaTest" file="/srv/www/htdocs/devsecops-projeto-final-2026/tests/task-service/CadastrarTarefaTest.php" tests="3" assertions="3" errors="0" failures="0" skipped="0" time="0.000642">
+        <testcase name="testCadastroTarefaComDadosValidos" file="/srv/www/htdocs/devsecops-projeto-final-2026/tests/task-service/CadastrarTarefaTest.php" line="9" class="CadastrarTarefaTest" classname="CadastrarTarefaTest" assertions="1" time="0.000370"/>
+        <testcase name="testCadastroTarefaSemTituloDeveFalhar" file="/srv/www/htdocs/devsecops-projeto-final-2026/tests/task-service/CadastrarTarefaTest.php" line="25" class="CadastrarTarefaTest" classname="CadastrarTarefaTest" assertions="1" time="0.000134"/>
+        <testcase name="testCadastroTarefaComPrioridadeInvalidaDeveFalhar" file="/srv/www/htdocs/devsecops-projeto-final-2026/tests/task-service/CadastrarTarefaTest.php" line="41" class="CadastrarTarefaTest" classname="CadastrarTarefaTest" assertions="1" time="0.000138"/>
+      </testsuite>
+      <testsuite name="ListarTarefasTest" file="/srv/www/htdocs/devsecops-projeto-final-2026/tests/task-service/ListarTarefasTest.php" tests="2" assertions="4" errors="0" failures="0" skipped="0" time="0.000995">
+        <testcase name="testListarApenasTarefasDoUsuarioAutenticado" file="/srv/www/htdocs/devsecops-projeto-final-2026/tests/task-service/ListarTarefasTest.php" line="9" class="ListarTarefasTest" classname="ListarTarefasTest" assertions="3" time="0.000686"/>
+        <testcase name="testUsuarioSemTarefasRecebeListaVazia" file="/srv/www/htdocs/devsecops-projeto-final-2026/tests/task-service/ListarTarefasTest.php" line="39" class="ListarTarefasTest" classname="ListarTarefasTest" assertions="1" time="0.000309"/>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

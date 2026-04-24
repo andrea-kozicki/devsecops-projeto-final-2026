@@ -5,9 +5,19 @@ on:
   - workflow_dispatch
 
 jobs:
-  tarefa:
-    name: Olá, mundo!
+  testes-unitarios:
+    name: Executar testes unitários
     runs-on: self-hosted
+
     steps:
-      - name: Echo
-        run: echo "Olá, mundo!"
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Verificar PHP
+        run: php -v
+
+      - name: Instalar dependências
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Rodar PHPUnit
+        run: ./vendor/bin/phpunit
