@@ -1,29 +1,75 @@
+# =========================
+# Variáveis de ambiente / segredos
+# =========================
 .env
 .env.*
 !.env.example
 
+# Configurações locais com credenciais
+config.local.php
+*/src/config.local.php
+*/src/secrets.php
+
+# =========================
+# Dependências
+# =========================
 vendor/
 
+# =========================
+# Logs
+# =========================
 *.log
 logs/
 */logs/
 
-.vscode/
-.idea/
+# =========================
+# Cache / temporários
+# =========================
+cache/
+tmp/
+temp/
+*.tmp
+*.cache
 
-.DS_Store
-Thumbs.db
+# =========================
+# Uploads gerados em runtime
+# =========================
+uploads/
+public/uploads/
+*/public/uploads/
 
+# =========================
+# Banco local / dumps / backups
+# =========================
 *.sqlite
 *.sqlite3
 *.db
 *.bak
+*.dump
+backup/
+backups/
 
-uploads/
-public/uploads/
+# =========================
+# Arquivos do sistema
+# =========================
+.DS_Store
+Thumbs.db
 
-cache/
-tmp/
-temp/
+# =========================
+# IDE / editor
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
 
+# =========================
+# Testes / cobertura
+# =========================
+coverage/
+.phpunit.result.cache
+
+# =========================
+# Docker local, se usar depois
+# =========================
 docker-compose.override.yml

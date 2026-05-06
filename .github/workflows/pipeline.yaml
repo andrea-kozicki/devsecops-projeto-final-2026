@@ -4,10 +4,11 @@ on:
   - push
   - workflow_dispatch
 
-jobs:
+jobs: 
   testes-unitarios:
     name: Executar testes unitários
     runs-on: self-hosted
+    #customizar a image do runner para incluir o PHP e o Composer
 
     steps:
       - name: Baixar código
