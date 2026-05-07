@@ -1,51 +1,161 @@
 <?php
+declare(strict_types=1);
 
-function validarDadosTarefa(array $dados): bool
+function jsonResponse(int $statusCode, array $payload): void
 {
-    $usuarioId = $dados['usuario_id'] ?? null;
-    $titulo = trim($dados['titulo'] ?? '');
-    $prioridade = $dados['prioridade'] ?? '';
-    $prazo = $dados['prazo'] ?? '';
-    $status = $dados['status'] ?? '';
+    http_response_code($statusCode);
+    header('Content-Type: application/json; charset=utf-8');
 
-    $prioridadesPermitidas = ['baixa', 'media', 'alta'];
-    $statusPermitidos = ['pendente', 'em_andamento', 'concluida'];
-
-    if (!is_int($usuarioId) || $usuarioId <= 0) {
-        return false;
-    }
-
-    if ($titulo === '') {
-        return false;
-    }
-
-    if (!in_array($prioridade, $prioridadesPermitidas, true)) {
-        return false;
-    }
-
-    if (!validarData($prazo)) {
-        return false;
-    }
-
-    if (!in_array($status, $statusPermitidos, true)) {
-        return false;
-    }
-
-    return true;
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
 }
 
-function validarData(string $data): bool
+function getJsonInput(): array
 {
-    $formato = DateTime::createFromFormat('Y-m-d', $data);
+    $raw = file_get_contents('php://input');
+    if ($raw === false || trim($raw) === '') {
+        return [];
+    }
 
-    return $formato && $formato->format('Y-m-d') === $data;
+    $data = json_decode($raw, true);
+    return is_array($data) ? $data : [];
 }
 
-function filtrarTarefasPorUsuario(array $tarefas, int $usuarioId): array
+function getBearerToken(): ?string
 {
-    $tarefasFiltradas = array_filter($tarefas, function ($tarefa) use ($usuarioId) {
-        return isset($tarefa['usuario_id']) && $tarefa['usuario_id'] === $usuarioId;
-    });
+    $authorization = null;
 
-    return array_values($tarefasFiltradas);
+    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+        $authorization = $_SERVER['HTTP_AUTHORIZATION'];
+    } elseif (isset($_SERVER['Authorization'])) {
+        $authorization = $_SERVER['Authorization'];
+    } elseif (function_exists('getallheaders')) {
+        $headers = getallheaders();
+        $authorization = $headers['Authorization'] ?? $headers['authorization'] ?? null;
+    }
+
+    if (!$authorization) {
+        return null;
+    }
+
+    if (!preg_match('/Bearer\s+(.+)/i', $authorization, $matches)) {
+        return null;
+    }
+
+    $token = trim($matches[1]);
+    return $token !== '' ? $token : null;
+}
+
+function normalizeTaskPath(?string $requestUri): string
+{
+    $path = parse_url($requestUri ?? '/', PHP_URL_PATH) ?: '/';
+
+    $prefixes = [
+        '/internal-tasks',
+        '/task-service/public',
+        '/task-service',
+    ];
+
+    foreach ($prefixes as $prefix) {
+        if (str_starts_with($path, $prefix)) {
+            $path = substr($path, strlen($prefix));
+            break;
+        }
+    }
+
+    $path = '/' . ltrim($path, '/');
+
+    return $path === '//' ? '/' : (rtrim($path, '/') ?: '/');
+}
+
+function requireFields(array $data, array $requiredFields): array
+{
+    $errors = [];
+
+    foreach ($requiredFields as $field) {
+        if (!array_key_exists($field, $data) || trim((string) $data[$field]) === '') {
+            $errors[$field] = "O campo '{$field}' é obrigatório.";
+        }
+    }
+
+    return $errors;
+}
+
+function isValidPriority(string $priority): bool
+{
+    return in_array($priority, ['baixa', 'media', 'alta'], true);
+}
+
+function isValidStatus(string $status): bool
+{
+    return in_array($status, ['pendente', 'em_andamento', 'concluida'], true);
+}
+
+function isValidDate(?string $date): bool
+{
+    if ($date === null || $date === '') {
+        return true;
+    }
+
+    $dt = DateTime::createFromFormat('Y-m-d', $date);
+    return $dt !== false && $dt->format('Y-m-d') === $date;
+}
+
+function fetchAuthenticatedUser(array $config, string $token): ?array
+{
+    $url = rtrim($config['auth_service_url'], '/') . '/auth/me';
+
+    $opts = [
+        'http' => [
+            'method' => 'GET',
+            'header' => "Authorization: Bearer {$token}\r\nAccept: application/json\r\n",
+            'ignore_errors' => true,
+            'timeout' => 5,
+        ],
+    ];
+
+    $context = stream_context_create($opts);
+    $response = @file_get_contents($url, false, $context);
+
+    $statusCode = 0;
+    if (isset($http_response_header[0]) && preg_match('#\s(\d{3})\s#', $http_response_header[0], $matches)) {
+        $statusCode = (int) $matches[1];
+    }
+
+    if ($response === false || $statusCode !== 200) {
+        return null;
+    }
+
+    $decoded = json_decode($response, true);
+
+    if (!is_array($decoded) || !($decoded['success'] ?? false)) {
+        return null;
+    }
+
+    return is_array($decoded['data'] ?? null) ? $decoded['data'] : null;
+}
+
+function requireAuthenticatedUser(array $config): array
+{
+    $token = getBearerToken();
+
+    if ($token === null) {
+        jsonResponse(401, [
+            'success' => false,
+            'message' => 'Token não informado.',
+            'errors' => [],
+        ]);
+    }
+
+    $user = fetchAuthenticatedUser($config, $token);
+
+    if ($user === null) {
+        jsonResponse(401, [
+            'success' => false,
+            'message' => 'Token inválido ou expirado.',
+            'errors' => [],
+        ]);
+    }
+
+    return $user;
 }

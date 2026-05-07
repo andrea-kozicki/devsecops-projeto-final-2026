@@ -1,0 +1,16 @@
+Options -Indexes
+DirectoryIndex index.html
+
+RewriteEngine On
+
+# Se for arquivo ou diretório real, entrega direto
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Rotas amigáveis da camada web
+RewriteRule ^$ index.html [L]
+RewriteRule ^login/?$ login.html [L]
+RewriteRule ^cadastro/?$ cadastro.html [L]
+RewriteRule ^tarefas/?$ tarefas.html [L]
+RewriteRule ^perfil/?$ perfil.html [L]

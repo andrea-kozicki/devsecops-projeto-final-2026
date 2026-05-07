@@ -73,3 +73,10 @@ coverage/
 # Docker local, se usar depois
 # =========================
 docker-compose.override.yml
+
+# =========================
+# Outros arquivos específicos do projeto
+# =========================
+auth-service/src/auth_config_local.php
+gateway/src/gateway_config_local.php
+task-service/src/task_config_local.php
