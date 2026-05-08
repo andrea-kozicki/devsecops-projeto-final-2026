@@ -14,23 +14,45 @@ function dispatchAuth(PDO $pdo, array $config): void
         exit;
     }
 
-    if ($method === 'GET' && $path === '/health') {
+    if ($path === '/health') {
+        if ($method !== 'GET') {
+            methodNotAllowed(['GET']);
+        }
         authHealthCheck();
     }
 
-    if ($method === 'POST' && $path === '/auth/register') {
+    if ($path === '/ready') {
+        if ($method !== 'GET') {
+            methodNotAllowed(['GET']);
+        }
+        authReadyCheck($pdo);
+    }
+
+    if ($path === '/auth/register') {
+        if ($method !== 'POST') {
+            methodNotAllowed(['POST']);
+        }
         registerUser($pdo);
     }
 
-    if ($method === 'POST' && $path === '/auth/login') {
+    if ($path === '/auth/login') {
+        if ($method !== 'POST') {
+            methodNotAllowed(['POST']);
+        }
         loginUser($pdo, $config);
     }
 
-    if ($method === 'GET' && $path === '/auth/me') {
+    if ($path === '/auth/me') {
+        if ($method !== 'GET') {
+            methodNotAllowed(['GET']);
+        }
         getProfile($pdo);
     }
 
-    if ($method === 'POST' && $path === '/auth/logout') {
+    if ($path === '/auth/logout') {
+        if ($method !== 'POST') {
+            methodNotAllowed(['POST']);
+        }
         logoutUser($pdo);
     }
 

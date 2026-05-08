@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - StudyBoard</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <h1>Login</h1>
+      <div class="nav-links">
+        <a class="button secondary" href="/">Início</a>
+        <a class="button secondary" href="/cadastro">Cadastro</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <form id="login-form" class="form-grid">
+        <div>
+          <label for="login-email">E-mail</label>
+          <input id="login-email" type="email" required>
+        </div>
+
+        <div>
+          <label for="login-password">Senha</label>
+          <input id="login-password" type="password" required>
+        </div>
+
+        <button type="submit">Entrar</button>
+      </form>
+
+      <div id="login-message" class="alert hidden"></div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+</body>
+</html>

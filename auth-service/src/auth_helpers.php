@@ -13,11 +13,21 @@ function jsonResponse(int $statusCode, array $payload): void
 function getJsonInput(): array
 {
     $raw = file_get_contents('php://input');
+
     if ($raw === false || trim($raw) === '') {
         return [];
     }
 
     $data = json_decode($raw, true);
+
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        jsonResponse(400, [
+            'success' => false,
+            'message' => 'JSON inválido.',
+            'errors' => ['json' => json_last_error_msg()],
+        ]);
+    }
+
     return is_array($data) ? $data : [];
 }
 
@@ -106,4 +116,15 @@ function sanitizeUserOutput(array $user): array
         'created_at' => $user['created_at'] ?? null,
         'updated_at' => $user['updated_at'] ?? null,
     ];
+}
+
+function methodNotAllowed(array $allowedMethods): void
+{
+    header('Allow: ' . implode(', ', $allowedMethods));
+
+    jsonResponse(405, [
+        'success' => false,
+        'message' => 'Método não permitido.',
+        'errors' => [],
+    ]);
 }

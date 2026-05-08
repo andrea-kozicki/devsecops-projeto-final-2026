@@ -30,6 +30,27 @@ function registerUser(PDO $pdo): void
     $email = mb_strtolower(trim((string) $data['email']));
     $password = (string) $data['password'];
 
+    if (mb_strlen($name) > 120) {
+        $errors['name'] = 'O nome deve ter no máximo 120 caracteres.';
+    }
+
+    if (mb_strlen($email) > 150) {
+        $errors['email'] = 'O e-mail deve ter no máximo 150 caracteres.';
+    }
+
+    if (mb_strlen($password) > 255) {
+        $errors['password'] = 'A senha deve ter no máximo 255 caracteres.';
+    }
+
+    if (!empty($errors)) {
+        jsonResponse(422, [
+            'success' => false,
+            'message' => 'Dados inválidos.',
+            'errors' => $errors,
+        ]);
+    }
+     
+    
     if (!validateEmailAddress($email)) {
         jsonResponse(422, [
             'success' => false,
@@ -175,5 +196,15 @@ function logoutUser(PDO $pdo): void
     jsonResponse(200, [
         'success' => true,
         'message' => 'Logout realizado com sucesso.',
+    ]);
+}
+
+function authReadyCheck(PDO $pdo): void
+{
+    $pdo->query('SELECT 1');
+
+    jsonResponse(200, [
+        'success' => true,
+        'message' => 'Auth service ready.',
     ]);
 }

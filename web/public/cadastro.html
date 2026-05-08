@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro - StudyBoard</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <h1>Cadastro</h1>
+      <div class="nav-links">
+        <a class="button secondary" href="/">Início</a>
+        <a class="button secondary" href="/login">Login</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <form id="register-form" class="form-grid">
+        <div>
+          <label for="register-name">Nome</label>
+          <input id="register-name" type="text" required>
+        </div>
+
+        <div>
+          <label for="register-email">E-mail</label>
+          <input id="register-email" type="email" required>
+        </div>
+
+        <div>
+          <label for="register-password">Senha</label>
+          <input id="register-password" type="password" required>
+        </div>
+
+        <button type="submit">Cadastrar</button>
+      </form>
+
+      <div id="register-message" class="alert hidden"></div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+</body>
+</html>

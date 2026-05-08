@@ -18,6 +18,14 @@ function createTaskAction(PDO $pdo, array $config): void
     $status = trim((string) ($data['status'] ?? 'pendente'));
     $dueDate = trim((string) ($data['due_date'] ?? ''));
 
+    if (mb_strlen($title) > 150) {
+        $errors['title'] = 'O título deve ter no máximo 150 caracteres.';
+    }
+
+    if (mb_strlen($description) > 2000) {
+        $errors['description'] = 'A descrição deve ter no máximo 2000 caracteres.';
+    }
+
     if ($title === '') {
         $errors['title'] = 'O título é obrigatório.';
     }
@@ -172,6 +180,14 @@ function updateTaskAction(PDO $pdo, array $config, int $taskId): void
 
     $errors = [];
 
+    if (array_key_exists('title', $data) && mb_strlen(trim((string) $data['title'])) > 150) {
+        $errors['title'] = 'O título deve ter no máximo 150 caracteres.';
+    }
+
+    if (array_key_exists('description', $data) && mb_strlen(trim((string) $data['description'])) > 2000) {
+        $errors['description'] = 'A descrição deve ter no máximo 2000 caracteres.';
+    }
+
     if (array_key_exists('priority', $data) && !isValidPriority((string) $data['priority'])) {
         $errors['priority'] = 'Prioridade inválida.';
     }
@@ -259,5 +275,15 @@ function deleteTaskAction(PDO $pdo, array $config, int $taskId): void
     jsonResponse(200, [
         'success' => true,
         'message' => 'Tarefa excluída com sucesso.',
+    ]);
+}
+
+function taskReadyCheck(PDO $pdo): void
+{
+    $pdo->query('SELECT 1');
+
+    jsonResponse(200, [
+        'success' => true,
+        'message' => 'Task service ready.',
     ]);
 }

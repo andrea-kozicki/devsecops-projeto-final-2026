@@ -14,12 +14,23 @@ function dispatchTask(PDO $pdo, array $config): void
         exit;
     }
 
-    if ($method === 'POST' && $path === '/tasks') {
-        createTaskAction($pdo, $config);
+    if ($path === '/tasks') {
+        if ($method === 'POST') {
+            createTaskAction($pdo, $config);
+        }
+
+        if ($method === 'GET') {
+            listTasksAction($pdo, $config);
+        }
+
+        methodNotAllowed(['GET', 'POST']);
     }
 
-    if ($method === 'GET' && $path === '/tasks') {
-        listTasksAction($pdo, $config);
+    if ($path === '/ready') {
+        if ($method !== 'GET') {
+            methodNotAllowed(['GET']);
+        }
+        taskReadyCheck($pdo);
     }
 
     if (preg_match('#^/tasks/(\d+)$#', $path, $matches)) {
@@ -36,6 +47,8 @@ function dispatchTask(PDO $pdo, array $config): void
         if ($method === 'DELETE') {
             deleteTaskAction($pdo, $config, $taskId);
         }
+
+        methodNotAllowed(['GET', 'PUT', 'DELETE']);
     }
 
     jsonResponse(404, [

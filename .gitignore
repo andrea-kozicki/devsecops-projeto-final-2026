@@ -68,6 +68,8 @@ Thumbs.db
 # =========================
 coverage/
 .phpunit.result.cache
+.fish
+.sh
 
 # =========================
 # Docker local, se usar depois
@@ -80,3 +82,6 @@ docker-compose.override.yml
 auth-service/src/auth_config_local.php
 gateway/src/gateway_config_local.php
 task-service/src/task_config_local.php
+/security_smoke_tests.fish
+/security-test-results/
+security_smoke_tests.fish~

@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-$localConfigFile = __DIR__ . '/task_config.local.php';
+$localConfigFile = __DIR__ . '/task_config_local.php';
 
 if (is_file($localConfigFile)) {
     return require $localConfigFile;
