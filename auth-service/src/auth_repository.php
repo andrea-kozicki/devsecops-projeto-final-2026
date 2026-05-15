@@ -119,3 +119,115 @@ function revokeTokenByHash(PDO $pdo, string $tokenHash): bool
 
     return $stmt->rowCount() > 0;
 }
+
+function registerLoginAttempt(PDO $pdo, string $email, string $ipAddress): void
+{
+    $sql = 'INSERT INTO login_attempts (email, ip_address) VALUES (:email, :ip_address)';
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        'email' => $email,
+        'ip_address' => $ipAddress,
+    ]);
+}
+
+function countRecentLoginAttempts(PDO $pdo, string $email, string $ipAddress, int $minutes = 15): int
+{
+    $sql = '
+        SELECT COUNT(*)
+        FROM login_attempts
+        WHERE email = :email
+          AND ip_address = :ip_address
+          AND attempted_at >= (NOW() - INTERVAL :minutes MINUTE)
+    ';
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindValue(':email', $email);
+    $stmt->bindValue(':ip_address', $ipAddress);
+    $stmt->bindValue(':minutes', $minutes, PDO::PARAM_INT);
+    $stmt->execute();
+
+    return (int) $stmt->fetchColumn();
+}
+
+function clearLoginAttempts(PDO $pdo, string $email, string $ipAddress): void
+{
+    $sql = 'DELETE FROM login_attempts WHERE email = :email AND ip_address = :ip_address';
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        'email' => $email,
+        'ip_address' => $ipAddress,
+    ]);
+}
+
+function updateUserProfile(PDO $pdo, int $userId, array $fields): array
+{
+    $allowed = ['name', 'email', 'password_hash'];
+    $sets = [];
+    $params = ['id' => $userId];
+
+    foreach ($fields as $key => $value) {
+        if (!in_array($key, $allowed, true)) {
+            continue;
+        }
+
+        if ($key === 'password_hash') {
+            $sets[] = 'password_hash = :password_hash';
+            $params['password_hash'] = $value;
+            continue;
+        }
+
+        $sets[] = "{$key} = :{$key}";
+        $params[$key] = $value;
+    }
+
+    if (empty($sets)) {
+        throw new InvalidArgumentException('Nenhum campo válido para atualização.');
+    }
+
+    $sets[] = 'updated_at = NOW()';
+
+    $sql = 'UPDATE users SET ' . implode(', ', $sets) . ' WHERE id = :id';
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+
+    $updatedUser = findUserById($pdo, $userId);
+
+    if (!$updatedUser) {
+        throw new RuntimeException('Usuário não encontrado após atualização.');
+    }
+
+    return $updatedUser;
+}
+
+function listUsers(PDO $pdo): array
+{
+    $sql = 'SELECT id, name, email, role, is_active, created_at, updated_at
+            FROM users
+            ORDER BY created_at DESC';
+
+    $stmt = $pdo->query($sql);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function updateUserActiveStatus(PDO $pdo, int $userId, bool $isActive): array
+{
+    $stmt = $pdo->prepare(
+        'UPDATE users
+         SET is_active = :is_active,
+             updated_at = NOW()
+         WHERE id = :id'
+    );
+
+    $stmt->execute([
+        'is_active' => $isActive ? 1 : 0,
+        'id' => $userId,
+    ]);
+
+    $user = findUserById($pdo, $userId);
+
+    if (!$user) {
+        throw new RuntimeException('Usuário não encontrado após atualização de status.');
+    }
+
+    return $user;
+}

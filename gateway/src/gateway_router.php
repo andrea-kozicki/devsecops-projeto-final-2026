@@ -55,10 +55,11 @@ function dispatchGateway(array $config): void
     }
 
     if ($path === '/auth/me') {
-        if ($method !== 'GET') {
-            methodNotAllowed(['GET']);
+        if ($method === 'GET' || $method === 'PUT') {
+            forwardRequest($authBase . '/auth/me');
         }
-        forwardRequest($authBase . '/auth/me');
+
+        methodNotAllowed(['GET', 'PUT']);
     }
 
     if ($path === '/auth/logout') {
@@ -85,6 +86,38 @@ function dispatchGateway(array $config): void
         }
 
         methodNotAllowed(['GET', 'PUT', 'DELETE']);
+    }
+
+    if ($path === '/admin/users') {
+        if ($method !== 'GET') {
+            methodNotAllowed(['GET']);
+        }
+
+        forwardRequest($authBase . '/admin/users');
+    }
+
+    if (preg_match('#^/admin/users/(\d+)/block$#', $path, $matches)) {
+        if ($method !== 'POST') {
+            methodNotAllowed(['POST']);
+        }
+
+        forwardRequest($authBase . '/admin/users/' . (int) $matches[1] . '/block');
+    }
+
+    if (preg_match('#^/admin/users/(\d+)/reactivate$#', $path, $matches)) {
+        if ($method !== 'POST') {
+            methodNotAllowed(['POST']);
+        }
+
+        forwardRequest($authBase . '/admin/users/' . (int) $matches[1] . '/reactivate');
+    }
+
+    if ($path === '/admin/audit') {
+        if ($method !== 'GET') {
+            methodNotAllowed(['GET']);
+        }
+
+        forwardRequest($authBase . '/admin/audit');
     }
 
     gatewayLogWarning('Rota não encontrada no gateway', [

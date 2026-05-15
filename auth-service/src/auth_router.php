@@ -43,10 +43,15 @@ function dispatchAuth(PDO $pdo, array $config): void
     }
 
     if ($path === '/auth/me') {
-        if ($method !== 'GET') {
-            methodNotAllowed(['GET']);
+        if ($method === 'GET') {
+            getProfile($pdo);
         }
-        getProfile($pdo);
+
+        if ($method === 'PUT') {
+            updateProfile($pdo);
+        }
+
+        methodNotAllowed(['GET', 'PUT']);
     }
 
     if ($path === '/auth/logout') {
@@ -56,6 +61,38 @@ function dispatchAuth(PDO $pdo, array $config): void
         logoutUser($pdo);
     }
 
+    if ($path === '/admin/users') {
+        if ($method !== 'GET') {
+            methodNotAllowed(['GET']);
+        }
+
+        listUsersAction($pdo);
+    }
+
+    if (preg_match('#^/admin/users/(\d+)/block$#', $path, $matches)) {
+    if ($method !== 'POST') {
+        methodNotAllowed(['POST']);
+    }
+
+    blockUserAction($pdo, (int) $matches[1]);
+
+
+    if (preg_match('#^/admin/users/(\d+)/reactivate$#', $path, $matches)) {
+        if ($method !== 'POST') {
+            methodNotAllowed(['POST']);
+        }
+
+        reactivateUserAction($pdo, (int) $matches[1]);
+    }
+
+    if ($path === '/admin/audit') {
+        if ($method !== 'GET') {
+            methodNotAllowed(['GET']);
+        }
+
+        listAuditLogsAction($pdo);
+    }
+}
     jsonResponse(404, [
         'success' => false,
         'message' => 'Rota não encontrada.',

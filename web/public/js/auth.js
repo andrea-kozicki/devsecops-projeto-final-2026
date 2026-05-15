@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupRegisterForm();
   setupLogoutButtons();
   setupHomeUserInfo();
+  renderAdminLinks();
 });
 
 function setupLoginForm() {
@@ -114,4 +115,21 @@ function setupHomeUserInfo() {
   `;
 
   setupLogoutButtons();
+}
+
+function renderAdminLinks() {
+  const target = document.getElementById("admin-links");
+  if (!target) return;
+
+  const user = getStoredUser();
+
+  if (!user || user.role !== "admin") {
+    target.innerHTML = "";
+    return;
+  }
+
+  target.innerHTML = `
+    <a class="button secondary" href="/usuarios">Usuários</a>
+    <a class="button secondary" href="/auditoria">Auditoria</a>
+  `;
 }
