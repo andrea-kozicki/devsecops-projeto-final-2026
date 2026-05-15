@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/auth_repository.php';
+require_once __DIR__ . '/auth_token_service.php';
+
 function jsonResponse(int $statusCode, array $payload): void
 {
     http_response_code($statusCode);
@@ -54,6 +57,34 @@ function getBearerToken(): ?string
 
     $token = trim($matches[1]);
     return $token !== '' ? $token : null;
+}
+
+function requireAuthenticatedUser(PDO $pdo): array
+{
+    $token = getBearerToken();
+
+    if ($token === null) {
+        jsonResponse(401, [
+            'success' => false,
+            'message' => 'Token não informado.',
+            'errors' => [],
+        ]);
+    }
+
+    $tokenHash = hashAccessToken($token);
+    $record = findValidTokenRecord($pdo, $tokenHash);
+
+    if ($record === null) {
+        jsonResponse(401, [
+            'success' => false,
+            'message' => 'Token inválido ou expirado.',
+            'errors' => [],
+        ]);
+    }
+
+    touchTokenUsage($pdo, (int) $record['token_id']);
+
+    return $record;
 }
 
 function normalizeAuthPath(?string $requestUri): string

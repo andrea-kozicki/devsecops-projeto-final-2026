@@ -13,6 +13,7 @@
       <div class="nav-links">
         <a class="button secondary" href="/">Início</a>
         <a class="button secondary" href="/perfil">Perfil</a>
+        <span id="admin-links"></span>
         <button class="danger" data-logout>Logout</button>
       </div>
     </div>
@@ -62,6 +63,56 @@
       <div id="task-message" class="alert hidden"></div>
     </div>
 
+    <div class="card hidden" id="edit-task-card" style="margin-top: 18px;">
+      <h2>Editar tarefa</h2>
+
+      <form id="edit-task-form" class="form-grid">
+        <input id="edit-task-id" type="hidden">
+
+        <div>
+          <label for="edit-task-title">Título</label>
+          <input id="edit-task-title" type="text" required>
+        </div>
+
+        <div>
+          <label for="edit-task-description">Descrição</label>
+          <textarea id="edit-task-description"></textarea>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="edit-task-priority">Prioridade</label>
+            <select id="edit-task-priority">
+              <option value="baixa">Baixa</option>
+              <option value="media">Média</option>
+              <option value="alta">Alta</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="edit-task-status">Status</label>
+            <select id="edit-task-status">
+              <option value="pendente">Pendente</option>
+              <option value="em_andamento">Em andamento</option>
+              <option value="concluida">Concluída</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="edit-task-due-date">Prazo</label>
+          <input id="edit-task-due-date" type="date">
+        </div>
+
+        <div class="nav-links">
+          <button type="submit">Salvar alterações</button>
+          <button type="button" id="cancel-edit-task" class="secondary">Cancelar edição</button>
+        </div>
+      </form>
+
+      <div id="edit-task-message" class="alert hidden"></div>
+    </div>
+
     <div class="card" style="margin-top: 18px;">
       <h2>Filtros</h2>
 
@@ -85,10 +136,17 @@
             <option value="alta">Alta</option>
           </select>
         </div>
+
+        <div>
+          <label for="filter-due-date">Prazo</label>
+          <input id="filter-due-date" type="date">
+        </div>
+
       </form>
 
       <div class="nav-links" style="margin-top: 14px;">
         <button id="refresh-tasks" type="button">Atualizar lista</button>
+        <button id="clear-filters" type="button" class="secondary">Limpar filtros</button>
       </div>
 
       <div id="task-list-message" class="alert hidden"></div>

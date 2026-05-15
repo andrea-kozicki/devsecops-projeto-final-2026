@@ -3,33 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StudyBoard</title>
+  <title>Auditoria - StudyBoard</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
   <div class="container">
     <div class="nav">
-      <h1>StudyBoard</h1>
+      <h1>Auditoria</h1>
       <div class="nav-links">
-        <a class="button" href="/login">Login</a>
-        <a class="button secondary" href="/cadastro">Cadastro</a>
-        <a class="button secondary" href="/tarefas">Tarefas</a>
+        <a class="button secondary" href="/">Início</a>
+        <a class="button secondary" href="/usuarios">Usuários</a>
         <a class="button secondary" href="/perfil">Perfil</a>
         <span id="admin-links"></span>
+        <button class="danger" data-logout>Logout</button>
       </div>
     </div>
 
     <div class="card">
-      <h2>Lista de tarefas com API REST em PHP puro</h2>
-      <p>
-        Interface mínima para testar autenticação, perfil e gerenciamento de tarefas
-        via gateway <span class="code">/api</span>.
-      </p>
-      <div id="home-user-info"></div>
+      <h2>Eventos recentes</h2>
+      <div id="audit-message" class="alert hidden"></div>
+      <div id="audit-list" class="task-list"></div>
     </div>
   </div>
 
   <script src="/js/api.js"></script>
   <script src="/js/auth.js"></script>
+  <script src="/js/auditoria.js"></script>
 </body>
 </html>

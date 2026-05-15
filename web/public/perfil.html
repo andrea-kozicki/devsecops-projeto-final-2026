@@ -13,11 +13,42 @@
       <div class="nav-links">
         <a class="button secondary" href="/">Início</a>
         <a class="button secondary" href="/tarefas">Tarefas</a>
+        <span id="admin-links"></span>
         <button class="danger" data-logout>Logout</button>
       </div>
     </div>
 
-    <div id="profile-data"></div>
+    <div class="card">
+      <h2>Editar perfil</h2>
+
+      <form id="profile-form" class="form-grid">
+        <div>
+          <label for="profile-name">Nome</label>
+          <input id="profile-name" type="text" required>
+        </div>
+
+        <div>
+          <label for="profile-email">E-mail</label>
+          <input id="profile-email" type="email" required>
+        </div>
+
+        <div>
+          <label for="profile-password">Nova senha</label>
+          <input id="profile-password" type="password" placeholder="Deixe em branco para não alterar">
+        </div>
+
+        <button type="submit">Salvar perfil</button>
+      </form>
+
+      <div id="profile-message" class="alert hidden"></div>
+    </div>
+
+    <div class="card" style="margin-top: 18px;">
+      <h2>Dados atuais</h2>
+      <div id="profile-summary">
+        <p class="muted">Carregando perfil...</p>
+      </div>
+    </div>
   </div>
 
   <script src="/js/api.js"></script>

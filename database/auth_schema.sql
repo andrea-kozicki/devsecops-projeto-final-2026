@@ -31,6 +31,30 @@ CREATE TABLE IF NOT EXISTS auth_tokens (
     CONSTRAINT uq_auth_tokens_hash UNIQUE (token_hash)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(150) NOT NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    attempted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_login_attempts_email_ip_time (email, ip_address, attempted_at)
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    actor_user_id INT UNSIGNED NULL,
+    target_user_id INT UNSIGNED NULL,
+    event_type VARCHAR(80) NOT NULL,
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id INT UNSIGNED NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    details_json LONGTEXT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_audit_created_at (created_at),
+    INDEX idx_audit_event_type (event_type),
+    INDEX idx_audit_actor_user_id (actor_user_id),
+    INDEX idx_audit_target_user_id (target_user_id)
+);
+
 CREATE INDEX idx_auth_tokens_user_id ON auth_tokens(user_id);
 CREATE INDEX idx_auth_tokens_expires_at ON auth_tokens(expires_at);
 CREATE INDEX idx_auth_tokens_revoked ON auth_tokens(revoked);
