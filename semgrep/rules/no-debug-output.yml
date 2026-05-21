@@ -1,0 +1,36 @@
+rules:
+  - id: php-debug-output-without-logger
+    languages:
+      - php
+    severity: WARNING
+    message: "Evite usar print/echo/var_dump/print_r/die/exit para debug ou saída diagnóstica. Use um logger apropriado."
+    metadata:
+      category: best-practice
+      technology:
+        - php
+      justification: "Funções de saída direta podem expor informações sensíveis e dificultar auditoria estruturada."
+    pattern-either:
+      - pattern: print ...;
+      - pattern: print(...);
+      - pattern: echo ...;
+      - pattern: var_dump(...);
+      - pattern: print_r(...);
+      - pattern: die(...);
+      - pattern: exit(...);
+
+  - id: javascript-console-without-logger
+    languages:
+      - javascript
+      - typescript
+    severity: WARNING
+    message: "Evite usar console.log/console.error/console.warn em código de aplicação. Use um logger apropriado."
+    metadata:
+      category: best-practice
+      technology:
+        - javascript
+      justification: "Chamadas de console podem expor dados em ambiente de produção e não geram logs estruturados."
+    pattern-either:
+      - pattern: console.log(...)
+      - pattern: console.error(...)
+      - pattern: console.warn(...)
+      - pattern: console.debug(...)

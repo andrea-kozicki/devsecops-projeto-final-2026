@@ -1,14 +1,21 @@
-name: "Formativa"
+name: "Formativa - DevSecOps Security Pipeline"
 
 on:
-  - push
-  - workflow_dispatch
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
-jobs: 
+permissions:
+  contents: read
+
+jobs:
   testes-unitarios:
     name: Executar testes unitários
     runs-on: self-hosted
-    #customizar a image do runner para incluir o PHP e o Composer
 
     steps:
       - name: Baixar código
@@ -22,3 +29,77 @@ jobs:
 
       - name: Rodar PHPUnit
         run: ./vendor/bin/phpunit
+
+  sast-semgrep:
+    name: SAST - Semgrep
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Instalar Semgrep
+        run: python3 -m pip install --upgrade semgrep
+
+      - name: Preparar pasta de relatórios
+        run: mkdir -p reports
+
+      - name: Rodar Semgrep com regras padrão e regra customizada
+        continue-on-error: true
+        run: |
+          semgrep scan \
+            --config auto \
+            --config semgrep/rules \
+            --json \
+            --output reports/semgrep-results.json \
+            .
+
+      - name: Gerar resumo legível da regra customizada
+        continue-on-error: true
+        run: |
+          semgrep scan \
+            --config semgrep/rules/no-debug-output.yml \
+            . | tee reports/semgrep-custom-rule.txt
+
+      - name: Publicar relatórios do Semgrep
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-reports
+          path: |
+            reports/semgrep-results.json
+            reports/semgrep-custom-rule.txt
+
+  sca-fossa:
+    name: SCA - FOSSA
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Preparar pasta de relatórios
+        run: mkdir -p reports
+
+      - name: Rodar FOSSA scan, policy test e relatório
+        id: fossa
+        continue-on-error: true
+        uses: fossas/fossa-action@v1.9.0
+        with:
+          api-key: ${{ secrets.FOSSA_API_KEY }}
+          run-tests: true
+          generate-report: html
+
+      - name: Salvar relatório HTML do FOSSA
+        if: always()
+        env:
+          FOSSA_REPORT: ${{ steps.fossa.outputs.report }}
+        run: |
+          printf '%s' "$FOSSA_REPORT" > reports/fossa-attribution.html
+
+      - name: Publicar relatório do FOSSA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fossa-reports
+          path: reports/fossa-attribution.html
