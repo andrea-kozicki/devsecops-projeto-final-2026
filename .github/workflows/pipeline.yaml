@@ -81,13 +81,12 @@ jobs:
       - name: Preparar pasta de relatórios
         run: mkdir -p reports
 
-      - name: Rodar FOSSA scan, policy test e relatório
+      - name: Rodar análise SCA com FOSSA
         id: fossa
-        continue-on-error: true
         uses: fossas/fossa-action@v1.9.0
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
-          run-tests: true
+          project: devsecops-projeto-final-2026
           generate-report: html
 
       - name: Salvar relatório HTML do FOSSA
@@ -95,7 +94,11 @@ jobs:
         env:
           FOSSA_REPORT: ${{ steps.fossa.outputs.report }}
         run: |
-          printf '%s' "$FOSSA_REPORT" > reports/fossa-attribution.html
+          if [ -n "$FOSSA_REPORT" ]; then
+            printf '%s' "$FOSSA_REPORT" > reports/fossa-attribution.html
+          else
+            echo "Relatório HTML não foi retornado pela FOSSA Action." > reports/fossa-attribution.html
+          fi
 
       - name: Publicar relatório do FOSSA
         if: always()
