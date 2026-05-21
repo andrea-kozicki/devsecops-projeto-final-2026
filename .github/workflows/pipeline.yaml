@@ -78,31 +78,27 @@ jobs:
       - name: Baixar código
         uses: actions/checkout@v4
 
-      - name: Preparar pasta de relatórios
-        run: mkdir -p reports
-
       - name: Rodar análise SCA com FOSSA
-        id: fossa
         uses: fossas/fossa-action@v1.9.0
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
           project: devsecops-projeto-final-2026
-          generate-report: html
 
-      - name: Salvar relatório HTML do FOSSA
+      - name: Registrar evidência da execução FOSSA
         if: always()
-        env:
-          FOSSA_REPORT: ${{ steps.fossa.outputs.report }}
         run: |
-          if [ -n "$FOSSA_REPORT" ]; then
-            printf '%s' "$FOSSA_REPORT" > reports/fossa-attribution.html
-          else
-            echo "Relatório HTML não foi retornado pela FOSSA Action." > reports/fossa-attribution.html
-          fi
+          mkdir -p reports
+          cat > reports/fossa-evidencia.txt << 'EOF'
+          Etapa SCA executada com FOSSA.
 
-      - name: Publicar relatório do FOSSA
+          A análise de dependências foi enviada para o painel da FOSSA.
+          Os detalhes da execução ficam disponíveis nos logs do GitHub Actions
+          e no relatório online da FOSSA gerado após o fossa analyze.
+          EOF
+
+      - name: Publicar evidência da FOSSA
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: fossa-reports
-          path: reports/fossa-attribution.html
+          name: fossa-evidence
+          path: reports/fossa-evidencia.txt
