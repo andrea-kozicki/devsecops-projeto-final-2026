@@ -3,20 +3,20 @@ rules:
     languages:
       - php
     severity: WARNING
-    message: "Evite usar print/echo/var_dump/print_r/die/exit para debug ou saída diagnóstica. Use um logger apropriado."
+    message: "Evite usar print, echo, var_dump, print_r, die ou exit para debug/saída direta. Use um logger apropriado."
     metadata:
       category: best-practice
       technology:
         - php
       justification: "Funções de saída direta podem expor informações sensíveis e dificultar auditoria estruturada."
     pattern-either:
-      - pattern: print ...;
-      - pattern: print(...);
-      - pattern: echo ...;
-      - pattern: var_dump(...);
-      - pattern: print_r(...);
-      - pattern: die(...);
-      - pattern: exit(...);
+      - pattern: echo $VALUE;
+      - pattern: print $VALUE;
+      - pattern: print($VALUE);
+      - pattern: var_dump($VALUE);
+      - pattern: print_r($VALUE);
+      - pattern: die($VALUE);
+      - pattern: exit($VALUE);
 
   - id: javascript-console-without-logger
     languages:
