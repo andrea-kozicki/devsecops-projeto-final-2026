@@ -127,15 +127,6 @@ function validateEmailAddress(string $email): bool
     return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
 }
 
-function validatePasswordStrength(string $password): ?string
-{
-    if (mb_strlen($password) < 8) {
-        return 'A senha deve ter pelo menos 8 caracteres.';
-    }
-
-    return null;
-}
-
 function sanitizeUserOutput(array $user): array
 {
     return [

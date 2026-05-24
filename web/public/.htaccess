@@ -3,16 +3,16 @@ DirectoryIndex index.html
 
 RewriteEngine On
 
-# Se for arquivo ou diretório real, entrega direto
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# Rotas amigáveis da camada web
 RewriteRule ^$ index.html [L]
-RewriteRule ^login/?$ login.html [L]
-RewriteRule ^cadastro/?$ cadastro.html [L]
-RewriteRule ^tarefas/?$ tarefas.html [L]
-RewriteRule ^perfil/?$ perfil.html [L]
+RewriteRule ^login/?$ login.html [L,NC]
+RewriteRule ^cadastro/?$ cadastro.html [L,NC]
+RewriteRule ^tarefas/?$ tarefas.html [L,NC]
+RewriteRule ^perfil/?$ perfil.html [L,NC]
 RewriteRule ^usuarios/?$ usuarios.html [L,NC]
 RewriteRule ^auditoria/?$ auditoria.html [L,NC]
+RewriteRule ^recuperar-senha/?$ recuperar-senha.html [L,NC]
+RewriteRule ^redefinir-senha/?$ redefinir-senha.html [L,NC]

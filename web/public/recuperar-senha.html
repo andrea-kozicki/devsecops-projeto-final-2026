@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recuperar senha - StudyBoard</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Recuperar senha</h1>
+
+      <form id="forgot-password-form" class="form-grid">
+        <div>
+          <label for="forgot-email">E-mail</label>
+          <input id="forgot-email" type="email" required>
+        </div>
+
+        <button type="submit">Solicitar recuperação</button>
+      </form>
+
+      <div id="forgot-password-message" class="alert hidden"></div>
+      <div id="forgot-password-result"></div>
+
+      <p style="margin-top: 14px;">
+        <a href="/login">Voltar ao login</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/recuperar-senha.js"></script>
+</body>
+</html>

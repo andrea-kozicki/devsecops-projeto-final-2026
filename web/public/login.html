@@ -8,30 +8,60 @@
 </head>
 <body>
   <div class="container">
-    <div class="nav">
-      <h1>Login</h1>
-      <div class="nav-links">
-        <a class="button secondary" href="/">Início</a>
-        <a class="button secondary" href="/cadastro">Cadastro</a>
-      </div>
-    </div>
-
     <div class="card">
+      <h1>Entrar</h1>
+
       <form id="login-form" class="form-grid">
         <div>
           <label for="login-email">E-mail</label>
-          <input id="login-email" type="email" required>
+          <input
+            id="login-email"
+            name="email"
+            type="email"
+            autocomplete="username"
+            autocapitalize="none"
+            autocorrect="off"
+            spellcheck="false"
+            required
+          >
         </div>
 
         <div>
           <label for="login-password">Senha</label>
-          <input id="login-password" type="password" required>
+          <input
+            id="login-password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            spellcheck="false"
+            required
+          >
         </div>
 
-        <button type="submit">Entrar</button>
+        <button id="login-submit" type="button">Entrar</button>
+      </form>
+
+      <form id="login-mfa-form" class="form-grid hidden" style="margin-top: 18px;">
+        <div>
+          <label for="login-mfa-code">Código MFA</label>
+          <input id="login-mfa-code" type="text" inputmode="numeric" maxlength="6" placeholder="Digite o código de 6 dígitos">
+        </div>
+
+        <div class="nav-links">
+          <button type="submit">Confirmar MFA</button>
+          <button type="button" id="login-mfa-cancel" class="secondary">Cancelar</button>
+        </div>
       </form>
 
       <div id="login-message" class="alert hidden"></div>
+
+      <p style="margin-top: 14px;">
+        <a href="/recuperar-senha">Esqueci minha senha</a>
+      </p>
+
+      <p style="margin-top: 8px;">
+        Ainda não tem conta? <a href="/cadastro">Cadastre-se</a>
+      </p>
     </div>
   </div>
 

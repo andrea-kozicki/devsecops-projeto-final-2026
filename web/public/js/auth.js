@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   setupLoginForm();
+  setupLoginMfaForm();
   setupRegisterForm();
   setupLogoutButtons();
   setupHomeUserInfo();
@@ -8,20 +9,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function setupLoginForm() {
   const form = document.getElementById("login-form");
-  if (!form) return;
+  const submitButton = document.getElementById("login-submit");
+  const emailInput = document.getElementById("login-email");
+  const passwordInput = document.getElementById("login-password");
 
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
+  if (!form || !submitButton || !emailInput || !passwordInput) return;
+
+  async function performLogin() {
     clearMessage("login-message");
 
-    const email = document.getElementById("login-email").value.trim();
-    const password = document.getElementById("login-password").value;
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
 
     try {
       const result = await apiRequest("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
+
+      const mfaRequired = result?.data?.mfa_required === true;
+
+      if (mfaRequired) {
+        const challengeToken = result?.data?.challenge_token || "";
+
+        if (!challengeToken) {
+          throw new Error("Challenge MFA ausente.");
+        }
+
+        sessionStorage.setItem("studyboard_mfa_challenge", challengeToken);
+        sessionStorage.setItem("studyboard_mfa_email", email);
+
+        showLoginMfaStep();
+        renderMessage("login-message", "success", "MFA necessário. Informe o código de 6 dígitos.");
+        return;
+      }
 
       const token = result?.data?.access_token || "";
       const user = result?.data?.user || null;
@@ -40,6 +61,24 @@ function setupLoginForm() {
     } catch (error) {
       renderMessage("login-message", "error", error.message || "Falha no login.");
     }
+  }
+
+  submitButton.addEventListener("click", async () => {
+    await performLogin();
+  });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await performLogin();
+  });
+
+  [emailInput, passwordInput].forEach((input) => {
+    input.addEventListener("keydown", async (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        await performLogin();
+      }
+    });
   });
 }
 
@@ -132,4 +171,102 @@ function renderAdminLinks() {
     <a class="button secondary" href="/usuarios">Usuários</a>
     <a class="button secondary" href="/auditoria">Auditoria</a>
   `;
+}
+
+function setupLoginMfaForm() {
+  const form = document.getElementById("login-mfa-form");
+  const cancelButton = document.getElementById("login-mfa-cancel");
+
+  if (form) {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      clearMessage("login-message");
+
+      const challengeToken = sessionStorage.getItem("studyboard_mfa_challenge") || "";
+      const code = document.getElementById("login-mfa-code").value.trim();
+
+      if (!challengeToken) {
+        renderMessage("login-message", "error", "Challenge MFA ausente. Faça login novamente.");
+        hideLoginMfaStep();
+        return;
+      }
+
+      try {
+        const result = await apiRequest("/auth/mfa/verify-login", {
+          method: "POST",
+          body: JSON.stringify({
+            challenge_token: challengeToken,
+            code,
+          }),
+        });
+
+        const token = result?.data?.access_token || "";
+        const user = result?.data?.user || null;
+
+        if (!token || !user) {
+          throw new Error("Resposta MFA incompleta.");
+        }
+
+        setStoredToken(token);
+        setStoredUser(user);
+
+        sessionStorage.removeItem("studyboard_mfa_challenge");
+        sessionStorage.removeItem("studyboard_mfa_email");
+
+        renderMessage("login-message", "success", "Login MFA realizado com sucesso.");
+
+        setTimeout(() => {
+          window.location.href = "/tarefas";
+        }, 700);
+      } catch (error) {
+        renderMessage("login-message", "error", error.message || "Falha na validação MFA.");
+      }
+    });
+  }
+
+  if (cancelButton) {
+    cancelButton.addEventListener("click", () => {
+      sessionStorage.removeItem("studyboard_mfa_challenge");
+      sessionStorage.removeItem("studyboard_mfa_email");
+      hideLoginMfaStep();
+      clearMessage("login-message");
+    });
+  }
+}
+
+function showLoginMfaStep() {
+  const loginForm = document.getElementById("login-form");
+  const mfaForm = document.getElementById("login-mfa-form");
+  const mfaCode = document.getElementById("login-mfa-code");
+
+  if (loginForm) {
+    loginForm.classList.add("hidden");
+  }
+
+  if (mfaForm) {
+    mfaForm.classList.remove("hidden");
+  }
+
+  if (mfaCode) {
+    mfaCode.value = "";
+    mfaCode.focus();
+  }
+}
+
+function hideLoginMfaStep() {
+  const loginForm = document.getElementById("login-form");
+  const mfaForm = document.getElementById("login-mfa-form");
+  const passwordInput = document.getElementById("login-password");
+
+  if (mfaForm) {
+    mfaForm.classList.add("hidden");
+  }
+
+  if (loginForm) {
+    loginForm.classList.remove("hidden");
+  }
+
+  if (passwordInput) {
+    passwordInput.focus();
+  }
 }

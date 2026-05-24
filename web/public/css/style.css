@@ -237,6 +237,91 @@ textarea {
   border-radius: 6px;
 }
 
+.mfa-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mfa-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.mfa-status-label {
+  font-weight: 600;
+}
+
+.badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.badge-success {
+  background: rgba(16, 185, 129, 0.18);
+  color: #86efac;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.badge-danger {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.mfa-setup-box {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.mfa-setup-box p {
+  margin: 0;
+}
+
+.mfa-setup-box code {
+  display: block;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+  font-family: monospace;
+  font-size: 0.95rem;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.mfa-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.mfa-code-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mfa-code-block input {
+  max-width: 420px;
+}
+
+.hidden {
+  display: none !important;
+}
+
 @media (max-width: 720px) {
   .row {
     grid-template-columns: 1fr;

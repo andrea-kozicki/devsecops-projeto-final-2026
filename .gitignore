@@ -87,3 +87,4 @@ task-service/src/task_config_local.php
 security_smoke_tests.fish~
 /route-tests-results/
 report_*
+*.gz

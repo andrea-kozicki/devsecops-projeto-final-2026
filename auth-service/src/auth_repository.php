@@ -96,6 +96,164 @@ function findValidTokenRecord(PDO $pdo, string $tokenHash): ?array
     return $record ?: null;
 }
 
+function createLoginChallenge(PDO $pdo, int $userId, string $challengeHash, string $expiresAt, string $ipAddress): int
+{
+    $stmt = $pdo->prepare(
+        'INSERT INTO login_challenges (user_id, challenge_hash, expires_at, ip_address)
+         VALUES (:user_id, :challenge_hash, :expires_at, :ip_address)'
+    );
+
+    $stmt->execute([
+        'user_id' => $userId,
+        'challenge_hash' => $challengeHash,
+        'expires_at' => $expiresAt,
+        'ip_address' => $ipAddress,
+    ]);
+
+    return (int) $pdo->lastInsertId();
+}
+
+function findValidLoginChallenge(PDO $pdo, string $challengeHash): ?array
+{
+    $stmt = $pdo->prepare(
+        'SELECT
+            lc.id AS challenge_id,
+            lc.user_id,
+            lc.challenge_hash,
+            lc.expires_at,
+            lc.used,
+            lc.used_at,
+            lc.ip_address,
+            u.id,
+            u.name,
+            u.email,
+            u.role,
+            u.is_active,
+            u.created_at,
+            u.updated_at
+         FROM login_challenges lc
+         INNER JOIN users u ON u.id = lc.user_id
+         WHERE lc.challenge_hash = :challenge_hash
+           AND lc.used = 0
+           AND lc.expires_at > NOW()
+           AND u.is_active = 1
+         LIMIT 1'
+    );
+
+    $stmt->execute(['challenge_hash' => $challengeHash]);
+    $record = $stmt->fetch();
+
+    return $record ?: null;
+}
+
+function createPasswordResetToken(PDO $pdo, int $userId, string $tokenHash, string $expiresAt, string $ipAddress): int
+{
+    $stmt = $pdo->prepare(
+        'INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, ip_address)
+         VALUES (:user_id, :token_hash, :expires_at, :ip_address)'
+    );
+
+    $stmt->execute([
+        'user_id' => $userId,
+        'token_hash' => $tokenHash,
+        'expires_at' => $expiresAt,
+        'ip_address' => $ipAddress,
+    ]);
+
+    return (int) $pdo->lastInsertId();
+}
+
+function findValidPasswordResetToken(PDO $pdo, string $tokenHash): ?array
+{
+    $stmt = $pdo->prepare(
+        'SELECT
+            prt.id,
+            prt.user_id,
+            prt.token_hash,
+            prt.expires_at,
+            prt.used,
+            prt.used_at,
+            prt.ip_address,
+            u.email
+         FROM password_reset_tokens prt
+         INNER JOIN users u ON u.id = prt.user_id
+         WHERE prt.token_hash = :token_hash
+           AND prt.used = 0
+           AND prt.expires_at > NOW()
+         LIMIT 1'
+    );
+
+    $stmt->execute(['token_hash' => $tokenHash]);
+    $record = $stmt->fetch();
+
+    return $record ?: null;
+}
+
+function markPasswordResetTokenUsed(PDO $pdo, int $tokenId): void
+{
+    $stmt = $pdo->prepare(
+        'UPDATE password_reset_tokens
+         SET used = 1,
+             used_at = NOW()
+         WHERE id = :id'
+    );
+
+    $stmt->execute(['id' => $tokenId]);
+}
+
+function revokeAllTokensByUserId(PDO $pdo, int $userId): void
+{
+    $stmt = $pdo->prepare(
+        'UPDATE auth_tokens
+         SET revoked = 1
+         WHERE user_id = :user_id'
+    );
+
+    $stmt->execute(['user_id' => $userId]);
+}
+
+function upsertUserMfaSecret(PDO $pdo, int $userId, string $secret, bool $isEnabled): void
+{
+    $stmt = $pdo->prepare(
+        'INSERT INTO user_mfa (user_id, totp_secret, is_enabled)
+         VALUES (:user_id, :totp_secret, :is_enabled)
+         ON DUPLICATE KEY UPDATE
+             totp_secret = VALUES(totp_secret),
+             is_enabled = VALUES(is_enabled),
+             updated_at = NOW()'
+    );
+
+    $stmt->execute([
+        'user_id' => $userId,
+        'totp_secret' => $secret,
+        'is_enabled' => $isEnabled ? 1 : 0,
+    ]);
+}
+
+function enableUserMfa(PDO $pdo, int $userId): void
+{
+    $stmt = $pdo->prepare(
+        'UPDATE user_mfa
+         SET is_enabled = 1,
+             updated_at = NOW()
+         WHERE user_id = :user_id'
+    );
+
+    $stmt->execute(['user_id' => $userId]);
+}
+
+function disableUserMfa(PDO $pdo, int $userId): void
+{
+    $stmt = $pdo->prepare(
+        'UPDATE user_mfa
+         SET is_enabled = 0,
+             updated_at = NOW()
+         WHERE user_id = :user_id'
+    );
+
+    $stmt->execute(['user_id' => $userId]);
+}
+
 function touchTokenUsage(PDO $pdo, int $tokenId): void
 {
     $stmt = $pdo->prepare(
@@ -230,4 +388,46 @@ function updateUserActiveStatus(PDO $pdo, int $userId, bool $isActive): array
     }
 
     return $user;
+}
+
+function getUserMfaByUserId(PDO $pdo, int $userId): ?array
+{
+    $stmt = $pdo->prepare(
+        'SELECT user_id, totp_secret, is_enabled, confirmed_at, created_at, updated_at
+         FROM user_mfa
+         WHERE user_id = :user_id
+         LIMIT 1'
+    );
+
+    $stmt->execute(['user_id' => $userId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return $row ?: null;
+}
+
+function markLoginChallengeUsed(PDO $pdo, int $challengeId): void
+{
+    $stmt = $pdo->prepare(
+        'UPDATE login_challenges
+         SET used = 1,
+             used_at = NOW()
+         WHERE id = :id'
+    );
+
+    $stmt->execute(['id' => $challengeId]);
+}
+
+function setUserPasswordHash(PDO $pdo, int $userId, string $passwordHash): void
+{
+    $stmt = $pdo->prepare(
+        'UPDATE users
+         SET password_hash = :password_hash,
+             updated_at = NOW()
+         WHERE id = :id'
+    );
+
+    $stmt->execute([
+        'password_hash' => $passwordHash,
+        'id' => $userId,
+    ]);
 }

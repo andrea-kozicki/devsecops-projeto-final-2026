@@ -49,6 +49,44 @@
         <p class="muted">Carregando perfil...</p>
       </div>
     </div>
+
+    <div class="card mfa-card" style="margin-top: 22px;">
+      <h2>MFA</h2>
+      <p class="muted">Proteja sua conta com autenticação em dois fatores.</p>
+
+      <div class="mfa-status-row">
+        <span class="mfa-status-label">Status:</span>
+        <span id="mfa-status-badge" class="badge badge-danger">Desabilitado</span>
+      </div>
+
+      <div id="mfa-status" class="muted">Carregando status MFA...</div>
+
+      <div id="mfa-setup-result" class="mfa-setup-box hidden"></div>
+
+      <div class="mfa-actions-row">
+        <button type="button" id="mfa-setup-btn">Iniciar configuração MFA</button>
+      </div>
+
+      <div class="mfa-code-block">
+        <label for="mfa-code">Código MFA</label>
+        <input
+          id="mfa-code"
+          type="text"
+          inputmode="numeric"
+          maxlength="6"
+          placeholder="Digite o código de 6 dígitos"
+          autocomplete="one-time-code"
+        >
+      </div>
+
+      <div class="mfa-actions-row">
+        <button type="button" id="mfa-enable-btn" class="secondary">Habilitar MFA</button>
+        <button type="button" id="mfa-disable-btn" class="danger">Desabilitar MFA</button>
+      </div>
+
+      <div id="mfa-message" class="alert hidden"></div>
+    </div>
+
   </div>
 
   <script src="/js/api.js"></script>

@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   try {
     await loadProfile();
+    await loadMfaStatus();
   } catch (error) {
     if (error.status === 401) {
       clearStoredToken();
@@ -27,6 +28,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       renderProfileSummary(null);
     }
   }
+
+  setupMfaButtons();
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -108,4 +111,131 @@ function renderProfileSummary(user) {
     <p><strong>Criado em:</strong> ${escapeHtml(user.created_at || "—")}</p>
     <p><strong>Atualizado em:</strong> ${escapeHtml(user.updated_at || "—")}</p>
   `;
+}
+
+async function loadMfaStatus() {
+  const statusText = document.getElementById("mfa-status");
+  const badge = document.getElementById("mfa-status-badge");
+  const setupBox = document.getElementById("mfa-setup-result");
+  const setupBtn = document.getElementById("mfa-setup-btn");
+
+  if (!statusText || !badge) return;
+
+  try {
+    const result = await apiRequest("/auth/mfa/status");
+    const enabled = result?.data?.enabled === true;
+
+    if (enabled) {
+      statusText.textContent = "MFA habilitado e ativo para esta conta.";
+      badge.textContent = "Habilitado";
+      badge.classList.remove("badge-danger");
+      badge.classList.add("badge-success");
+
+      if (setupBox) {
+        setupBox.classList.add("hidden");
+        setupBox.innerHTML = "";
+      }
+
+      if (setupBtn) {
+        setupBtn.textContent = "Reconfigurar MFA";
+      }
+    } else {
+      statusText.textContent = "MFA desabilitado.";
+      badge.textContent = "Desabilitado";
+      badge.classList.remove("badge-success");
+      badge.classList.add("badge-danger");
+
+      if (setupBtn) {
+        setupBtn.textContent = "Iniciar configuração MFA";
+      }
+    }
+  } catch (error) {
+    statusText.textContent = "Falha ao carregar status MFA.";
+    badge.textContent = "Erro";
+    badge.classList.remove("badge-success");
+    badge.classList.add("badge-danger");
+  }
+}
+
+function setupMfaButtons() {
+  const setupBtn = document.getElementById("mfa-setup-btn");
+  const enableBtn = document.getElementById("mfa-enable-btn");
+  const disableBtn = document.getElementById("mfa-disable-btn");
+
+  if (setupBtn) {
+    setupBtn.addEventListener("click", async () => {
+      clearMessage("mfa-message");
+
+      try {
+        const result = await apiRequest("/auth/mfa/setup", { method: "POST" });
+        const data = result?.data || {};
+        const target = document.getElementById("mfa-setup-result");
+
+        if (target) {
+          target.classList.remove("hidden");
+          target.innerHTML = `
+            <div>
+              <p><strong>Secret</strong></p>
+              <code>${escapeHtml(data.secret || "")}</code>
+            </div>
+            <div>
+              <p><strong>otpauth URL</strong></p>
+              <code>${escapeHtml(data.otpauth_url || "")}</code>
+            </div>
+            <p class="muted">Adicione esse secret em um aplicativo autenticador e informe o código gerado abaixo.</p>
+          `;
+        }
+
+        renderMessage("mfa-message", "success", "Configuração MFA iniciada.");
+        await loadMfaStatus();
+      } catch (error) {
+        renderMessage("mfa-message", "error", error.message || "Falha ao iniciar MFA.");
+      }
+    });
+  }
+
+  if (enableBtn) {
+    enableBtn.addEventListener("click", async () => {
+      clearMessage("mfa-message");
+      const code = document.getElementById("mfa-code").value.trim();
+
+      try {
+        await apiRequest("/auth/mfa/enable", {
+          method: "POST",
+          body: JSON.stringify({ code }),
+        });
+
+        renderMessage("mfa-message", "success", "MFA habilitado com sucesso.");
+
+        const setupBox = document.getElementById("mfa-setup-result");
+        if (setupBox) {
+          setupBox.classList.add("hidden");
+          setupBox.innerHTML = "";
+        }
+
+        await loadMfaStatus();
+      } catch (error) {
+        renderMessage("mfa-message", "error", error.message || "Falha ao habilitar MFA.");
+      }
+    });
+  }
+
+  if (disableBtn) {
+    disableBtn.addEventListener("click", async () => {
+      clearMessage("mfa-message");
+      const code = document.getElementById("mfa-code").value.trim();
+
+      try {
+        await apiRequest("/auth/mfa/disable", {
+          method: "POST",
+          body: JSON.stringify({ code }),
+        });
+
+        renderMessage("mfa-message", "success", "MFA desabilitado com sucesso.");
+        await loadMfaStatus();
+      } catch (error) {
+        renderMessage("mfa-message", "error", error.message || "Falha ao desabilitar MFA.");
+      }
+    });
+  }
 }

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redefinir senha - StudyBoard</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Redefinir senha</h1>
+
+      <form id="reset-password-form" class="form-grid">
+        <div>
+          <label for="reset-token">Token</label>
+          <input id="reset-token" type="text" required>
+        </div>
+
+        <div>
+          <label for="reset-password">Nova senha</label>
+          <input id="reset-password" type="password" required>
+        </div>
+
+        <button type="submit">Redefinir senha</button>
+      </form>
+
+      <div id="reset-password-message" class="alert hidden"></div>
+
+      <p style="margin-top: 14px;">
+        <a href="/login">Voltar ao login</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/redefinir-senha.js"></script>
+</body>
+</html>

@@ -55,6 +55,56 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     INDEX idx_audit_target_user_id (target_user_id)
 );
 
+CREATE TABLE IF NOT EXISTS user_mfa (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    totp_secret VARCHAR(64) NOT NULL,
+    is_enabled TINYINT(1) NOT NULL DEFAULT 0,
+    confirmed_at DATETIME NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_user_mfa_user FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT uq_user_mfa_user UNIQUE (user_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS login_challenges (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    challenge_hash CHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used TINYINT(1) NOT NULL DEFAULT 0,
+    used_at DATETIME NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_login_challenges_user FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT uq_login_challenges_hash UNIQUE (challenge_hash)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    token_hash CHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used TINYINT(1) NOT NULL DEFAULT 0,
+    used_at DATETIME NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_password_reset_tokens_user FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT uq_password_reset_tokens_hash UNIQUE (token_hash)
+) ENGINE=InnoDB;
+
+CREATE INDEX idx_user_mfa_user_id ON user_mfa(user_id);
+CREATE INDEX idx_login_challenges_user_id ON login_challenges(user_id);
+CREATE INDEX idx_login_challenges_hash ON login_challenges(challenge_hash);
+CREATE INDEX idx_password_reset_tokens_user_id ON password_reset_tokens(user_id);
+CREATE INDEX idx_password_reset_tokens_hash ON password_reset_tokens(token_hash);
+
 CREATE INDEX idx_auth_tokens_user_id ON auth_tokens(user_id);
 CREATE INDEX idx_auth_tokens_expires_at ON auth_tokens(expires_at);
 CREATE INDEX idx_auth_tokens_revoked ON auth_tokens(revoked);
