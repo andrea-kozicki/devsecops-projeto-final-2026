@@ -16,6 +16,20 @@ CREATE TABLE IF NOT EXISTS tasks (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS task_audit_logs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    actor_user_id INT UNSIGNED NOT NULL,
+    task_id BIGINT UNSIGNED NULL,
+    event_type VARCHAR(80) NOT NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    details LONGTEXT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_task_audit_created_at (created_at),
+    INDEX idx_task_audit_actor_user_id (actor_user_id),
+    INDEX idx_task_audit_task_id (task_id),
+    INDEX idx_task_audit_event_type (event_type)
+) ENGINE=InnoDB;
+
 CREATE INDEX idx_tasks_user_id ON tasks(user_id);
 CREATE INDEX idx_tasks_status ON tasks(status);
 CREATE INDEX idx_tasks_priority ON tasks(priority);

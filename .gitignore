@@ -9,11 +9,16 @@
 config.local.php
 */src/config.local.php
 */src/secrets.php
+auth-service/src/auth_config_local.php
+gateway/src/gateway_config_local.php
+task-service/src/task_config_local.php
 
 # =========================
 # Dependências
 # =========================
 vendor/
+!web/public/js/vendor/
+!web/public/js/vendor/qrcode.js
 
 # =========================
 # Logs
@@ -62,14 +67,18 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+*~
 
 # =========================
 # Testes / cobertura
 # =========================
 coverage/
 .phpunit.result.cache
-.fish
-.sh
+reports/
+route-test-results/
+security-test-results/
+*.fish
+
 
 # =========================
 # Docker local, se usar depois
@@ -77,14 +86,6 @@ coverage/
 docker-compose.override.yml
 
 # =========================
-# Outros arquivos específicos do projeto
+# Arquivos compactados / artefatos
 # =========================
-auth-service/src/auth_config_local.php
-gateway/src/gateway_config_local.php
-task-service/src/task_config_local.php
-/security_smoke_tests.fish
-/security-test-results/
-security_smoke_tests.fish~
-/route-tests-results/
-report_*
-*.gz
+*.tar.gz

@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/task_repository.php';
+require_once __DIR__ . '/task_audit_repository.php';
 require_once __DIR__ . '/task_helpers.php';
 require_once __DIR__ . '/task_logger.php';
 
@@ -64,6 +65,20 @@ function createTaskAction(PDO $pdo, array $config): void
     ]);
 
     $task = findTaskByIdForUser($pdo, $taskId, (int) $user['id']);
+
+    createTaskAuditLog(
+        $pdo,
+        (int) $user['id'],
+        $taskId,
+        'task_created',
+        taskClientIp(),
+        [
+            'title' => $title,
+            'priority' => $priority,
+            'status' => $status,
+            'due_date' => $dueDate !== '' ? $dueDate : null,
+        ]
+    );
 
     taskLogInfo('Tarefa criada', [
         'user_id' => (int) $user['id'],
@@ -129,6 +144,23 @@ function listTasksAction(PDO $pdo, array $config): void
 
     $tasks = listTasks($pdo, (int) $user['id'], $filters);
 
+    $hasFilters =
+        !empty($filters['status']) ||
+        !empty($filters['priority']) ||
+        !empty($filters['due_date']);
+
+    createTaskAuditLog(
+        $pdo,
+        (int) $user['id'],
+        null,
+        $hasFilters ? 'tasks_filtered' : 'tasks_listed',
+        taskClientIp(),
+        [
+            'filters' => $filters,
+            'count' => count($tasks),
+        ]
+    );
+
     taskLogInfo('Tarefas listadas', [
         'user_id' => (int) $user['id'],
         'filters' => $filters,
@@ -160,6 +192,17 @@ function getTaskAction(PDO $pdo, array $config, int $taskId): void
             'errors' => [],
         ]);
     }
+
+    createTaskAuditLog(
+        $pdo,
+        (int) $user['id'],
+        $taskId,
+        'task_viewed',
+        taskClientIp(),
+        [
+            'title' => $task['title'] ?? null,
+        ]
+    );
 
     taskLogInfo('Tarefa consultada', [
         'user_id' => (int) $user['id'],
@@ -214,26 +257,36 @@ function updateTaskAction(PDO $pdo, array $config, int $taskId): void
         ]);
     }
 
-    $updated = updateTaskForUser($pdo, $taskId, (int) $user['id'], $data);
+    $existingTask = findTaskByIdForUser($pdo, $taskId, (int) $user['id']);
 
-    if (!$updated) {
-        $task = findTaskByIdForUser($pdo, $taskId, (int) $user['id']);
+    if ($existingTask === null) {
+        taskLogWarning('Tentativa de atualizar tarefa inexistente', [
+            'user_id' => (int) $user['id'],
+            'task_id' => $taskId,
+        ]);
 
-        if ($task === null) {
-            taskLogWarning('Tentativa de atualizar tarefa inexistente', [
-                'user_id' => (int) $user['id'],
-                'task_id' => $taskId,
-            ]);
-
-            jsonResponse(404, [
-                'success' => false,
-                'message' => 'Tarefa não encontrada.',
-                'errors' => [],
-            ]);
-        }
+        jsonResponse(404, [
+            'success' => false,
+            'message' => 'Tarefa não encontrada.',
+            'errors' => [],
+        ]);
     }
 
+    $updated = updateTaskForUser($pdo, $taskId, (int) $user['id'], $data);
     $task = findTaskByIdForUser($pdo, $taskId, (int) $user['id']);
+
+    createTaskAuditLog(
+        $pdo,
+        (int) $user['id'],
+        $taskId,
+        'task_updated',
+        taskClientIp(),
+        [
+            'fields' => array_keys($data),
+            'updated' => $updated,
+            'title' => $task['title'] ?? ($existingTask['title'] ?? null),
+        ]
+    );
 
     taskLogInfo('Tarefa atualizada', [
         'user_id' => (int) $user['id'],
@@ -252,9 +305,9 @@ function deleteTaskAction(PDO $pdo, array $config, int $taskId): void
 {
     $user = requireAuthenticatedUser($config);
 
-    $deleted = deleteTaskForUser($pdo, $taskId, (int) $user['id']);
+    $existingTask = findTaskByIdForUser($pdo, $taskId, (int) $user['id']);
 
-    if (!$deleted) {
+    if ($existingTask === null) {
         taskLogWarning('Tentativa de excluir tarefa inexistente', [
             'user_id' => (int) $user['id'],
             'task_id' => $taskId,
@@ -266,6 +319,34 @@ function deleteTaskAction(PDO $pdo, array $config, int $taskId): void
             'errors' => [],
         ]);
     }
+
+    $deleted = deleteTaskForUser($pdo, $taskId, (int) $user['id']);
+
+    if (!$deleted) {
+        taskLogWarning('Falha ao excluir tarefa', [
+            'user_id' => (int) $user['id'],
+            'task_id' => $taskId,
+        ]);
+
+        jsonResponse(500, [
+            'success' => false,
+            'message' => 'Falha ao excluir tarefa.',
+            'errors' => [],
+        ]);
+    }
+
+    createTaskAuditLog(
+        $pdo,
+        (int) $user['id'],
+        $taskId,
+        'task_deleted',
+        taskClientIp(),
+        [
+            'title' => $existingTask['title'] ?? null,
+            'priority' => $existingTask['priority'] ?? null,
+            'status' => $existingTask['status'] ?? null,
+        ]
+    );
 
     taskLogInfo('Tarefa excluída', [
         'user_id' => (int) $user['id'],

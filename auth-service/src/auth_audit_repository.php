@@ -19,7 +19,7 @@ function createAuditLog(
             entity_type,
             entity_id,
             ip_address,
-            details_json
+            details
         ) VALUES (
             :actor_user_id,
             :target_user_id,
@@ -27,7 +27,7 @@ function createAuditLog(
             :entity_type,
             :entity_id,
             :ip_address,
-            :details_json
+            :details
         )'
     );
 
@@ -38,7 +38,9 @@ function createAuditLog(
         'entity_type' => $entityType,
         'entity_id' => $entityId,
         'ip_address' => $ipAddress,
-        'details_json' => !empty($details) ? json_encode($details, JSON_UNESCAPED_UNICODE) : null,
+        'details' => !empty($details)
+            ? json_encode($details, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            : null,
     ]);
 }
 
@@ -46,8 +48,8 @@ function listAuditLogs(PDO $pdo, int $limit = 100): array
 {
     $limit = max(1, min($limit, 500));
 
-    $sql = "
-        SELECT
+    $stmt = $pdo->query(
+        "SELECT
             al.id,
             al.actor_user_id,
             al.target_user_id,
@@ -55,31 +57,25 @@ function listAuditLogs(PDO $pdo, int $limit = 100): array
             al.entity_type,
             al.entity_id,
             al.ip_address,
-            al.details_json,
+            al.details,
             al.created_at,
             actor.name AS actor_name,
             actor.email AS actor_email,
             target.name AS target_name,
             target.email AS target_email
-        FROM audit_logs al
-        LEFT JOIN users actor ON actor.id = al.actor_user_id
-        LEFT JOIN users target ON target.id = al.target_user_id
-        ORDER BY al.created_at DESC, al.id DESC
-        LIMIT $limit
-    ";
+         FROM audit_logs al
+         LEFT JOIN users actor ON actor.id = al.actor_user_id
+         LEFT JOIN users target ON target.id = al.target_user_id
+         ORDER BY al.id DESC
+         LIMIT {$limit}"
+    );
 
-    $stmt = $pdo->query($sql);
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     foreach ($rows as &$row) {
-        $row['details'] = [];
-        if (!empty($row['details_json'])) {
-            $decoded = json_decode((string) $row['details_json'], true);
-            if (is_array($decoded)) {
-                $row['details'] = $decoded;
-            }
-        }
-        unset($row['details_json']);
+        $row['details'] = $row['details']
+            ? json_decode($row['details'], true)
+            : [];
     }
 
     return $rows;

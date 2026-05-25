@@ -140,7 +140,10 @@ function loginUser(PDO $pdo, array $config): void
             'auth',
             null,
             authClientIp(),
-            ['email' => $email]
+            [
+                'email' => $email,
+                'reason' => 'invalid_credentials_or_inactive_user',
+            ]
         );
 
         jsonResponse(401, [
@@ -167,7 +170,10 @@ function loginUser(PDO $pdo, array $config): void
             'auth',
             (int) $user['id'],
             authClientIp(),
-            []
+            [
+                'email' => $email,
+                'expires_at' => $expiresAt,
+            ]
         );
 
         jsonResponse(202, [
@@ -196,7 +202,10 @@ function loginUser(PDO $pdo, array $config): void
         'auth',
         (int) $user['id'],
         authClientIp(),
-        ['email' => $email]
+        [
+            'email' => $email,
+            'mfa_used' => false,
+        ]
     );
 
     jsonResponse(200, [

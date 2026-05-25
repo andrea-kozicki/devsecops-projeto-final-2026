@@ -61,7 +61,26 @@
 
       <div id="mfa-status" class="muted">Carregando status MFA...</div>
 
-      <div id="mfa-setup-result" class="mfa-setup-box hidden"></div>
+      <div id="mfa-setup-result" class="mfa-setup-box hidden">
+        <div id="mfa-qr-section" class="mfa-qr-section hidden">
+          <p><strong>Escaneie este QR code no app autenticador</strong></p>
+          <div id="mfa-qrcode" class="mfa-qrcode"></div>
+        </div>
+
+        <div id="mfa-secret-section" class="hidden">
+          <p><strong>Secret</strong></p>
+          <code id="mfa-secret-code"></code>
+        </div>
+
+        <div id="mfa-url-section" class="hidden">
+          <p><strong>otpauth URL</strong></p>
+          <code id="mfa-otpauth-url"></code>
+        </div>
+
+      <p class="muted">
+        Se preferir, você também pode cadastrar manualmente o secret no aplicativo autenticador.
+      </p>
+    </div>
 
       <div class="mfa-actions-row">
         <button type="button" id="mfa-setup-btn">Iniciar configuração MFA</button>
@@ -91,6 +110,7 @@
 
   <script src="/js/api.js"></script>
   <script src="/js/auth.js"></script>
+  <script src="/js/vendor/qrcode.js"></script>
   <script src="/js/perfil.js"></script>
 </body>
 </html>

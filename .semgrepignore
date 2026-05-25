@@ -1,0 +1,7 @@
+vendor/
+node_modules/
+backups/
+reports/
+route-test-results/
+security-test-results/
+web/public/js/vendor/qrcode.js

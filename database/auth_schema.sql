@@ -44,16 +44,16 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     actor_user_id INT UNSIGNED NULL,
     target_user_id INT UNSIGNED NULL,
     event_type VARCHAR(80) NOT NULL,
-    entity_type VARCHAR(50) NOT NULL,
-    entity_id INT UNSIGNED NULL,
+    entity_type VARCHAR(40) NOT NULL,
+    entity_id BIGINT UNSIGNED NULL,
     ip_address VARCHAR(45) NOT NULL,
-    details_json LONGTEXT NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    details LONGTEXT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_audit_created_at (created_at),
-    INDEX idx_audit_event_type (event_type),
     INDEX idx_audit_actor_user_id (actor_user_id),
-    INDEX idx_audit_target_user_id (target_user_id)
-);
+    INDEX idx_audit_target_user_id (target_user_id),
+    INDEX idx_audit_event_type (event_type)
+) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS user_mfa (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

@@ -28,7 +28,10 @@ function listUsersAction(PDO $pdo): void
         'user',
         null,
         authClientIp(),
-        ['count' => count($users)]
+        [
+            'count' => count($users),
+            'actor_email' => $authenticatedUser['email'] ?? null,
+        ]
     );
 
     jsonResponse(200, [
@@ -78,7 +81,10 @@ function blockUserAction(PDO $pdo, int $targetUserId): void
         'user',
         $targetUserId,
         authClientIp(),
-        ['email' => $updatedUser['email']]
+        [
+            'email' => $updatedUser['email'],
+            'actor_email' => $authenticatedUser['email'] ?? null,
+        ]
     );
 
     jsonResponse(200, [
@@ -120,7 +126,10 @@ function reactivateUserAction(PDO $pdo, int $targetUserId): void
         'user',
         $targetUserId,
         authClientIp(),
-        ['email' => $updatedUser['email']]
+        [
+            'email' => $updatedUser['email'],
+            'actor_email' => $authenticatedUser['email'] ?? null,
+        ]
     );
 
     jsonResponse(200, [
@@ -152,7 +161,10 @@ function listAuditLogsAction(PDO $pdo): void
         'audit',
         null,
         authClientIp(),
-        ['count' => count($logs)]
+        [
+            'count' => count($logs),
+            'actor_email' => $authenticatedUser['email'] ?? null,
+        ]
     );
 
     jsonResponse(200, [

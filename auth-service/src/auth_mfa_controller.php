@@ -40,7 +40,9 @@ function mfaSetupAction(PDO $pdo): void
         'user',
         (int) $authenticatedUser['id'],
         authClientIp(),
-        []
+        [
+            'email' => $authenticatedUser['email'] ?? null,
+        ]
     );
 
     jsonResponse(200, [
@@ -97,7 +99,9 @@ function mfaEnableAction(PDO $pdo): void
         'user',
         (int) $authenticatedUser['id'],
         authClientIp(),
-        []
+        [
+            'email' => $authenticatedUser['email'] ?? null,
+        ]
     );
 
     jsonResponse(200, [
@@ -151,7 +155,9 @@ function mfaDisableAction(PDO $pdo): void
         'user',
         (int) $authenticatedUser['id'],
         authClientIp(),
-        []
+        [
+            'email' => $authenticatedUser['email'] ?? null,
+        ]
     );
 
     jsonResponse(200, [
@@ -215,7 +221,10 @@ function verifyLoginMfaAction(PDO $pdo, array $config): void
             'auth',
             (int) $record['user_id'],
             authClientIp(),
-            []
+            [
+                'email' => $record['email'] ?? null,
+                'reason' => 'invalid_totp_code',
+            ]
         );
 
         jsonResponse(401, [
@@ -241,7 +250,10 @@ function verifyLoginMfaAction(PDO $pdo, array $config): void
         'auth',
         (int) $record['user_id'],
         authClientIp(),
-        []
+        [
+            'email' => $record['email'] ?? null,
+            'mfa_used' => true,
+        ]
     );
 
     jsonResponse(200, [

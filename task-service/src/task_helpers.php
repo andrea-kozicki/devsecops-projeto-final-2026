@@ -170,6 +170,21 @@ function requireAuthenticatedUser(array $config): array
     return $user;
 }
 
+function taskClientIp(): string
+{
+    $forwarded = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
+
+    if ($forwarded !== '') {
+        $parts = explode(',', $forwarded);
+        $candidate = trim($parts[0]);
+        if ($candidate !== '') {
+            return $candidate;
+        }
+    }
+
+    $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '';
+    return $remoteAddr !== '' ? $remoteAddr : 'unknown';
+}
 function methodNotAllowed(array $allowedMethods): void
 {
     header('Allow: ' . implode(', ', $allowedMethods));

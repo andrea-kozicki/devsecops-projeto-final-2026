@@ -1,122 +1,113 @@
-document.addEventListener("DOMContentLoaded", async () => {
-  requireAuthOnPage();
-  setupLogoutButtons();
-  renderAdminLinks();
+function clearMfaSetupBox() {
+  const setupBox = document.getElementById("mfa-setup-result");
+  const qrSection = document.getElementById("mfa-qr-section");
+  const secretSection = document.getElementById("mfa-secret-section");
+  const urlSection = document.getElementById("mfa-url-section");
+  const qrTarget = document.getElementById("mfa-qrcode");
+  const secretCode = document.getElementById("mfa-secret-code");
+  const otpAuthUrl = document.getElementById("mfa-otpauth-url");
 
-  const form = document.getElementById("profile-form");
-  if (!form) return;
-
-  const cachedUser = getStoredUser();
-  if (cachedUser) {
-    fillProfileForm(cachedUser);
-    renderProfileSummary(cachedUser);
+  if (setupBox) {
+    setupBox.classList.add("hidden");
   }
 
-  try {
-    await loadProfile();
-    await loadMfaStatus();
-  } catch (error) {
-    if (error.status === 401) {
-      clearStoredToken();
-      clearStoredUser();
-      redirectToLogin();
-      return;
-    }
-
-    renderMessage("profile-message", "error", error.message || "Falha ao carregar perfil.");
-    if (!cachedUser) {
-      renderProfileSummary(null);
-    }
+  if (qrSection) {
+    qrSection.classList.add("hidden");
   }
 
-  setupMfaButtons();
+  if (secretSection) {
+    secretSection.classList.add("hidden");
+  }
 
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    clearMessage("profile-message");
+  if (urlSection) {
+    urlSection.classList.add("hidden");
+  }
 
-    const payload = {
-      name: document.getElementById("profile-name").value.trim(),
-      email: document.getElementById("profile-email").value.trim(),
-    };
+  if (qrTarget) {
+    qrTarget.innerHTML = "";
+  }
 
-    const password = document.getElementById("profile-password").value;
-    if (password.trim() !== "") {
-      payload.password = password;
-    }
+  if (secretCode) {
+    secretCode.textContent = "";
+  }
 
-    try {
-      const result = await apiRequest("/auth/me", {
-        method: "PUT",
-        body: JSON.stringify(payload),
-      });
+  if (otpAuthUrl) {
+    otpAuthUrl.textContent = "";
+  }
+}
 
-      if (result?.data) {
-        setStoredUser(result.data);
-        fillProfileForm(result.data);
-        renderProfileSummary(result.data);
-      }
+function renderMfaQrCode(otpauthUrl) {
+  const qrTarget = document.getElementById("mfa-qrcode");
+  if (!qrTarget || !otpauthUrl) return;
 
-      document.getElementById("profile-password").value = "";
-      renderMessage("profile-message", "success", "Perfil atualizado com sucesso.");
-    } catch (error) {
-      if (error.status === 401) {
-        clearStoredToken();
-        clearStoredUser();
-        redirectToLogin();
-        return;
-      }
+  qrTarget.innerHTML = "";
 
-      const details = error?.data?.errors
-        ? Object.values(error.data.errors).join(" ")
-        : error.message;
+  if (typeof QRCode === "undefined") {
+    qrTarget.innerHTML = "<p>Biblioteca de QR code não carregada.</p>";
+    return;
+  }
 
-      renderMessage("profile-message", "error", details || "Falha ao atualizar perfil.");
-    }
+  new QRCode(qrTarget, {
+    text: otpauthUrl,
+    width: 180,
+    height: 180,
+    correctLevel: QRCode.CorrectLevel.M,
   });
-});
+}
+
+function fillProfileForm(user) {
+  const nameInput = document.getElementById("profile-name");
+  const emailInput = document.getElementById("profile-email");
+  const passwordInput = document.getElementById("profile-password");
+
+  if (nameInput) {
+    nameInput.value = user?.name || "";
+  }
+
+  if (emailInput) {
+    emailInput.value = user?.email || "";
+  }
+
+  if (passwordInput) {
+    passwordInput.value = "";
+  }
+}
+
+function renderProfileSummary(user) {
+  const target = document.getElementById("profile-summary");
+  if (!target) return;
+
+  if (!user) {
+    target.innerHTML = `<p class="muted">Não foi possível carregar os dados do perfil.</p>`;
+    return;
+  }
+
+  target.innerHTML = `
+    <p><strong>Nome:</strong> ${escapeHtml(user.name || "")}</p>
+    <p><strong>E-mail:</strong> ${escapeHtml(user.email || "")}</p>
+    <p><strong>Perfil:</strong> ${escapeHtml(user.role || "")}</p>
+    <p><strong>Status:</strong> ${user.is_active === 1 ? "Ativo" : "Inativo"}</p>
+    <p><strong>Criado em:</strong> ${escapeHtml(user.created_at || "")}</p>
+    <p><strong>Atualizado em:</strong> ${escapeHtml(user.updated_at || "")}</p>
+  `;
+}
 
 async function loadProfile() {
   const result = await apiRequest("/auth/me");
   const user = result?.data || null;
 
-  if (!user) {
-    throw new Error("Perfil não encontrado.");
+  if (user) {
+    setStoredUser(user);
+    fillProfileForm(user);
+    renderProfileSummary(user);
   }
 
-  setStoredUser(user);
-  fillProfileForm(user);
-  renderProfileSummary(user);
-}
-
-function fillProfileForm(user) {
-  document.getElementById("profile-name").value = user.name || "";
-  document.getElementById("profile-email").value = user.email || "";
-}
-
-function renderProfileSummary(user) {
-  const summary = document.getElementById("profile-summary");
-  if (!summary) return;
-
-  if (!user) {
-    summary.innerHTML = `<p class="muted">Não foi possível carregar os dados do perfil.</p>`;
-    return;
-  }
-
-  summary.innerHTML = `
-    <p><strong>Nome:</strong> ${escapeHtml(user.name || "—")}</p>
-    <p><strong>E-mail:</strong> ${escapeHtml(user.email || "—")}</p>
-    <p><strong>Perfil:</strong> ${escapeHtml(user.role || "user")}</p>
-    <p><strong>Ativo:</strong> ${user.is_active ? "Sim" : "Não"}</p>
-    <p><strong>Criado em:</strong> ${escapeHtml(user.created_at || "—")}</p>
-    <p><strong>Atualizado em:</strong> ${escapeHtml(user.updated_at || "—")}</p>
-  `;
+  return user;
 }
 
 async function loadMfaStatus() {
   const statusText = document.getElementById("mfa-status");
   const badge = document.getElementById("mfa-status-badge");
-  const setupBox = document.getElementById("mfa-setup-result");
   const setupBtn = document.getElementById("mfa-setup-btn");
 
   if (!statusText || !badge) return;
@@ -131,14 +122,11 @@ async function loadMfaStatus() {
       badge.classList.remove("badge-danger");
       badge.classList.add("badge-success");
 
-      if (setupBox) {
-        setupBox.classList.add("hidden");
-        setupBox.innerHTML = "";
-      }
-
       if (setupBtn) {
         setupBtn.textContent = "Reconfigurar MFA";
       }
+
+      clearMfaSetupBox();
     } else {
       statusText.textContent = "MFA desabilitado.";
       badge.textContent = "Desabilitado";
@@ -169,22 +157,39 @@ function setupMfaButtons() {
       try {
         const result = await apiRequest("/auth/mfa/setup", { method: "POST" });
         const data = result?.data || {};
-        const target = document.getElementById("mfa-setup-result");
 
-        if (target) {
-          target.classList.remove("hidden");
-          target.innerHTML = `
-            <div>
-              <p><strong>Secret</strong></p>
-              <code>${escapeHtml(data.secret || "")}</code>
-            </div>
-            <div>
-              <p><strong>otpauth URL</strong></p>
-              <code>${escapeHtml(data.otpauth_url || "")}</code>
-            </div>
-            <p class="muted">Adicione esse secret em um aplicativo autenticador e informe o código gerado abaixo.</p>
-          `;
+        const setupBox = document.getElementById("mfa-setup-result");
+        const qrSection = document.getElementById("mfa-qr-section");
+        const secretSection = document.getElementById("mfa-secret-section");
+        const urlSection = document.getElementById("mfa-url-section");
+        const secretCode = document.getElementById("mfa-secret-code");
+        const otpAuthUrl = document.getElementById("mfa-otpauth-url");
+
+        if (setupBox) {
+          setupBox.classList.remove("hidden");
         }
+
+        if (qrSection) {
+          qrSection.classList.remove("hidden");
+        }
+
+        if (secretSection) {
+          secretSection.classList.remove("hidden");
+        }
+
+        if (urlSection) {
+          urlSection.classList.remove("hidden");
+        }
+
+        if (secretCode) {
+          secretCode.textContent = data.secret || "";
+        }
+
+        if (otpAuthUrl) {
+          otpAuthUrl.textContent = data.otpauth_url || "";
+        }
+
+        renderMfaQrCode(data.otpauth_url || "");
 
         renderMessage("mfa-message", "success", "Configuração MFA iniciada.");
         await loadMfaStatus();
@@ -197,7 +202,7 @@ function setupMfaButtons() {
   if (enableBtn) {
     enableBtn.addEventListener("click", async () => {
       clearMessage("mfa-message");
-      const code = document.getElementById("mfa-code").value.trim();
+      const code = document.getElementById("mfa-code")?.value.trim() || "";
 
       try {
         await apiRequest("/auth/mfa/enable", {
@@ -206,13 +211,7 @@ function setupMfaButtons() {
         });
 
         renderMessage("mfa-message", "success", "MFA habilitado com sucesso.");
-
-        const setupBox = document.getElementById("mfa-setup-result");
-        if (setupBox) {
-          setupBox.classList.add("hidden");
-          setupBox.innerHTML = "";
-        }
-
+        clearMfaSetupBox();
         await loadMfaStatus();
       } catch (error) {
         renderMessage("mfa-message", "error", error.message || "Falha ao habilitar MFA.");
@@ -223,7 +222,7 @@ function setupMfaButtons() {
   if (disableBtn) {
     disableBtn.addEventListener("click", async () => {
       clearMessage("mfa-message");
-      const code = document.getElementById("mfa-code").value.trim();
+      const code = document.getElementById("mfa-code")?.value.trim() || "";
 
       try {
         await apiRequest("/auth/mfa/disable", {
@@ -232,6 +231,7 @@ function setupMfaButtons() {
         });
 
         renderMessage("mfa-message", "success", "MFA desabilitado com sucesso.");
+        clearMfaSetupBox();
         await loadMfaStatus();
       } catch (error) {
         renderMessage("mfa-message", "error", error.message || "Falha ao desabilitar MFA.");
@@ -239,3 +239,84 @@ function setupMfaButtons() {
     });
   }
 }
+
+document.addEventListener("DOMContentLoaded", async () => {
+  requireAuthOnPage();
+  setupLogoutButtons();
+  renderAdminLinks();
+  setupMfaButtons();
+
+  const form = document.getElementById("profile-form");
+  if (!form) return;
+
+  const cachedUser = getStoredUser();
+  if (cachedUser) {
+    fillProfileForm(cachedUser);
+    renderProfileSummary(cachedUser);
+  }
+
+  try {
+    await loadProfile();
+    await loadMfaStatus();
+  } catch (error) {
+    if (error.status === 401) {
+      clearStoredToken();
+      clearStoredUser();
+      redirectToLogin();
+      return;
+    }
+
+    renderMessage("profile-message", "error", error.message || "Falha ao carregar perfil.");
+    if (!cachedUser) {
+      renderProfileSummary(null);
+    }
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    clearMessage("profile-message");
+
+    const payload = {
+      name: document.getElementById("profile-name")?.value.trim() || "",
+      email: document.getElementById("profile-email")?.value.trim() || "",
+    };
+
+    const password = document.getElementById("profile-password")?.value || "";
+    if (password.trim() !== "") {
+      payload.password = password;
+    }
+
+    try {
+      const result = await apiRequest("/auth/me", {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+
+      if (result?.data) {
+        setStoredUser(result.data);
+        fillProfileForm(result.data);
+        renderProfileSummary(result.data);
+      }
+
+      const passwordInput = document.getElementById("profile-password");
+      if (passwordInput) {
+        passwordInput.value = "";
+      }
+
+      renderMessage("profile-message", "success", "Perfil atualizado com sucesso.");
+    } catch (error) {
+      if (error.status === 401) {
+        clearStoredToken();
+        clearStoredUser();
+        redirectToLogin();
+        return;
+      }
+
+      const details = error?.data?.errors
+        ? Object.values(error.data.errors).join(" ")
+        : error.message;
+
+      renderMessage("profile-message", "error", details || "Falha ao atualizar perfil.");
+    }
+  });
+});
