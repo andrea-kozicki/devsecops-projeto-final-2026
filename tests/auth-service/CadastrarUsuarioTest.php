@@ -1,46 +1,75 @@
 <?php
+declare(strict_types=1);
 
-require_once __DIR__ . '/../../vendor/autoload.php';
-
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunClassInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
-require_once __DIR__ . '/../../auth-service/src/auth_helpers.php';
-
+#[RunClassInSeparateProcess]
+#[PreserveGlobalState(false)]
 final class CadastrarUsuarioTest extends TestCase
 {
-    public function testCadastroUsuarioComDadosValidos(): void
+    public static function setUpBeforeClass(): void
     {
-        $dados = [
-            'nome' => 'Andrea',
-            'email' => 'andrea@email.com',
-            'senha' => 'Senha123'
-        ];
-
-        $resultado = validarDadosCadastroUsuario($dados);
-
-        $this->assertTrue($resultado);
+        require_once dirname(__DIR__, 2) . '/auth-service/src/auth_helpers.php';
     }
 
-    public function testCadastroUsuarioSemEmailDeveFalhar(): void
+    public function testRequireFieldsReturnsErrorsForMissingFields(): void
     {
-        $dados = [
-            'nome' => 'Andrea',
-            'email' => '',
-            'senha' => 'Senha123'
+        $data = [
+            'name' => 'Andrea',
         ];
 
-        $resultado = validarDadosCadastroUsuario($dados);
+        $errors = authRequireFields($data, ['name', 'email', 'password']);
 
-        $this->assertFalse($resultado);
+        $this->assertArrayHasKey('email', $errors);
+        $this->assertArrayHasKey('password', $errors);
+        $this->assertSame("O campo 'email' é obrigatório.", $errors['email']);
+        $this->assertSame("O campo 'password' é obrigatório.", $errors['password']);
     }
 
-    public function testSenhaNaoPodeSerArmazenadaEmTextoPuro(): void
+    public function testValidateEmailAddressReturnsTrueForValidEmail(): void
     {
-        $senha = 'Senha123';
+        $this->assertTrue(authValidateEmailAddress('meunome40@exemplo.com'));
+    }
 
-        $hash = gerarHashSenha($senha);
+    public function testValidateEmailAddressReturnsFalseForInvalidEmail(): void
+    {
+        $this->assertFalse(authValidateEmailAddress('email_invalido'));
+    }
 
-        $this->assertNotEquals($senha, $hash);
-        $this->assertTrue(password_verify($senha, $hash));
+    public function testSanitizeUserOutputReturnsExpectedStructure(): void
+    {
+        $user = [
+            'id' => '10',
+            'name' => 'Teste Perfil',
+            'email' => 'meunome40@exemplo.com',
+            'role' => 'admin',
+            'is_active' => '1',
+            'password_hash' => 'nao_deve_sair',
+            'created_at' => '2026-05-08 16:44:01',
+            'updated_at' => '2026-05-21 16:35:37',
+        ];
+
+        $result = authSanitizeUserOutput($user);
+
+        $this->assertSame([
+            'id' => 10,
+            'name' => 'Teste Perfil',
+            'email' => 'meunome40@exemplo.com',
+            'role' => 'admin',
+            'is_active' => 1,
+            'created_at' => '2026-05-08 16:44:01',
+            'updated_at' => '2026-05-21 16:35:37',
+        ], $result);
+
+        $this->assertArrayNotHasKey('password_hash', $result);
+    }
+
+    public function testNormalizeAuthPathRemovesKnownPrefixes(): void
+    {
+        $this->assertSame('/auth/login', authNormalizePath('/internal-auth/auth/login'));
+        $this->assertSame('/auth/login', authNormalizePath('/auth-service/public/auth/login'));
+        $this->assertSame('/auth/login', authNormalizePath('/auth-service/auth/login'));
     }
 }

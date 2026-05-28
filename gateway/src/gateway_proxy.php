@@ -27,7 +27,7 @@ function buildForwardHeaders(array $headers): array
 
 function appendCurrentQueryString(string $targetUrl): string
 {
-    $query = getCurrentQueryString();
+    $query = gatewayGetCurrentQueryString();
 
     if ($query === '') {
         return $targetUrl;
@@ -51,7 +51,7 @@ function forwardRequest(string $targetUrl): void
             'target_url' => $finalUrl,
         ]);
 
-        jsonResponse(502, [
+        gatewayJsonResponse(502, [
             'success' => false,
             'message' => 'Falha ao encaminhar requisição.',
             'errors' => ['gateway' => 'Não foi possível inicializar o cliente HTTP.'],
@@ -84,7 +84,7 @@ function forwardRequest(string $targetUrl): void
             'curl_error' => $curlError,
         ]);
 
-        jsonResponse(502, [
+        gatewayJsonResponse(502, [
             'success' => false,
             'message' => 'Falha ao encaminhar requisição.',
             'errors' => ['gateway' => $curlError],

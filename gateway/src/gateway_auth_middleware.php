@@ -26,10 +26,10 @@ function enforceGatewayAuth(string $path): void
         return;
     }
 
-    $token = getBearerToken();
+    $token = gatewayGetBearerToken();
 
     if ($token === null) {
-        jsonResponse(401, [
+        gatewayJsonResponse(401, [
             'success' => false,
             'message' => 'Token não informado.',
             'errors' => [],

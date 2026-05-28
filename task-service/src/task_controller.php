@@ -8,10 +8,10 @@ require_once __DIR__ . '/task_logger.php';
 
 function createTaskAction(PDO $pdo, array $config): void
 {
-    $user = requireAuthenticatedUser($config);
-    $data = getJsonInput();
+    $user = taskRequireAuthenticatedUser($config);
+    $data = taskGetJsonInput();
 
-    $errors = requireFields($data, ['title']);
+    $errors = taskRequireFields($data, ['title']);
 
     $title = trim((string) ($data['title'] ?? ''));
     $description = trim((string) ($data['description'] ?? ''));
@@ -31,15 +31,15 @@ function createTaskAction(PDO $pdo, array $config): void
         $errors['title'] = 'O título é obrigatório.';
     }
 
-    if (!isValidPriority($priority)) {
+    if (!taskIsValidPriority($priority)) {
         $errors['priority'] = 'Prioridade inválida.';
     }
 
-    if (!isValidStatus($status)) {
+    if (!taskIsValidStatus($status)) {
         $errors['status'] = 'Status inválido.';
     }
 
-    if (!isValidDate($dueDate)) {
+    if (!taskIsValidDate($dueDate)) {
         $errors['due_date'] = 'Data inválida. Use o formato YYYY-MM-DD.';
     }
 
@@ -49,7 +49,7 @@ function createTaskAction(PDO $pdo, array $config): void
             'errors' => $errors,
         ]);
 
-        jsonResponse(422, [
+        taskJsonResponse(422, [
             'success' => false,
             'message' => 'Dados inválidos.',
             'errors' => $errors,
@@ -86,7 +86,7 @@ function createTaskAction(PDO $pdo, array $config): void
         'title' => $title,
     ]);
 
-    jsonResponse(201, [
+    taskJsonResponse(201, [
         'success' => true,
         'message' => 'Tarefa criada com sucesso.',
         'data' => $task,
@@ -95,7 +95,7 @@ function createTaskAction(PDO $pdo, array $config): void
 
 function listTasksAction(PDO $pdo, array $config): void
 {
-    $user = requireAuthenticatedUser($config);
+    $user = taskRequireAuthenticatedUser($config);
 
     $filters = [
         'status' => $_GET['status'] ?? null,
@@ -103,39 +103,39 @@ function listTasksAction(PDO $pdo, array $config): void
         'due_date' => $_GET['due_date'] ?? null,
     ];
 
-    if (!empty($filters['status']) && !isValidStatus((string) $filters['status'])) {
+    if (!empty($filters['status']) && !taskIsValidStatus((string) $filters['status'])) {
         taskLogWarning('Filtro de status inválido', [
             'user_id' => (int) $user['id'],
             'status' => $filters['status'],
         ]);
 
-        jsonResponse(422, [
+        taskJsonResponse(422, [
             'success' => false,
             'message' => 'Filtro de status inválido.',
             'errors' => ['status' => 'Status inválido.'],
         ]);
     }
 
-    if (!empty($filters['priority']) && !isValidPriority((string) $filters['priority'])) {
+    if (!empty($filters['priority']) && !taskIsValidPriority((string) $filters['priority'])) {
         taskLogWarning('Filtro de prioridade inválido', [
             'user_id' => (int) $user['id'],
             'priority' => $filters['priority'],
         ]);
 
-        jsonResponse(422, [
+        taskJsonResponse(422, [
             'success' => false,
             'message' => 'Filtro de prioridade inválido.',
             'errors' => ['priority' => 'Prioridade inválida.'],
         ]);
     }
 
-    if (!empty($filters['due_date']) && !isValidDate((string) $filters['due_date'])) {
+    if (!empty($filters['due_date']) && !taskIsValidDate((string) $filters['due_date'])) {
         taskLogWarning('Filtro de prazo inválido', [
             'user_id' => (int) $user['id'],
             'due_date' => $filters['due_date'],
         ]);
 
-        jsonResponse(422, [
+        taskJsonResponse(422, [
             'success' => false,
             'message' => 'Filtro de prazo inválido.',
             'errors' => ['due_date' => 'Data inválida.'],
@@ -167,7 +167,7 @@ function listTasksAction(PDO $pdo, array $config): void
         'count' => count($tasks),
     ]);
 
-    jsonResponse(200, [
+    taskJsonResponse(200, [
         'success' => true,
         'message' => 'Tarefas carregadas com sucesso.',
         'data' => $tasks,
@@ -176,7 +176,7 @@ function listTasksAction(PDO $pdo, array $config): void
 
 function getTaskAction(PDO $pdo, array $config, int $taskId): void
 {
-    $user = requireAuthenticatedUser($config);
+    $user = taskRequireAuthenticatedUser($config);
 
     $task = findTaskByIdForUser($pdo, $taskId, (int) $user['id']);
 
@@ -186,7 +186,7 @@ function getTaskAction(PDO $pdo, array $config, int $taskId): void
             'task_id' => $taskId,
         ]);
 
-        jsonResponse(404, [
+        taskJsonResponse(404, [
             'success' => false,
             'message' => 'Tarefa não encontrada.',
             'errors' => [],
@@ -209,7 +209,7 @@ function getTaskAction(PDO $pdo, array $config, int $taskId): void
         'task_id' => $taskId,
     ]);
 
-    jsonResponse(200, [
+    taskJsonResponse(200, [
         'success' => true,
         'message' => 'Tarefa carregada com sucesso.',
         'data' => $task,
@@ -218,8 +218,8 @@ function getTaskAction(PDO $pdo, array $config, int $taskId): void
 
 function updateTaskAction(PDO $pdo, array $config, int $taskId): void
 {
-    $user = requireAuthenticatedUser($config);
-    $data = getJsonInput();
+    $user = taskRequireAuthenticatedUser($config);
+    $data = taskGetJsonInput();
 
     $errors = [];
 
@@ -231,15 +231,15 @@ function updateTaskAction(PDO $pdo, array $config, int $taskId): void
         $errors['description'] = 'A descrição deve ter no máximo 2000 caracteres.';
     }
 
-    if (array_key_exists('priority', $data) && !isValidPriority((string) $data['priority'])) {
+    if (array_key_exists('priority', $data) && !taskIsValidPriority((string) $data['priority'])) {
         $errors['priority'] = 'Prioridade inválida.';
     }
 
-    if (array_key_exists('status', $data) && !isValidStatus((string) $data['status'])) {
+    if (array_key_exists('status', $data) && !taskIsValidStatus((string) $data['status'])) {
         $errors['status'] = 'Status inválido.';
     }
 
-    if (array_key_exists('due_date', $data) && !isValidDate((string) $data['due_date'])) {
+    if (array_key_exists('due_date', $data) && !taskIsValidDate((string) $data['due_date'])) {
         $errors['due_date'] = 'Data inválida. Use o formato YYYY-MM-DD.';
     }
 
@@ -250,7 +250,7 @@ function updateTaskAction(PDO $pdo, array $config, int $taskId): void
             'errors' => $errors,
         ]);
 
-        jsonResponse(422, [
+        taskJsonResponse(422, [
             'success' => false,
             'message' => 'Dados inválidos.',
             'errors' => $errors,
@@ -265,7 +265,7 @@ function updateTaskAction(PDO $pdo, array $config, int $taskId): void
             'task_id' => $taskId,
         ]);
 
-        jsonResponse(404, [
+        taskJsonResponse(404, [
             'success' => false,
             'message' => 'Tarefa não encontrada.',
             'errors' => [],
@@ -294,7 +294,7 @@ function updateTaskAction(PDO $pdo, array $config, int $taskId): void
         'fields' => array_keys($data),
     ]);
 
-    jsonResponse(200, [
+    taskJsonResponse(200, [
         'success' => true,
         'message' => 'Tarefa atualizada com sucesso.',
         'data' => $task,
@@ -303,7 +303,7 @@ function updateTaskAction(PDO $pdo, array $config, int $taskId): void
 
 function deleteTaskAction(PDO $pdo, array $config, int $taskId): void
 {
-    $user = requireAuthenticatedUser($config);
+    $user = taskRequireAuthenticatedUser($config);
 
     $existingTask = findTaskByIdForUser($pdo, $taskId, (int) $user['id']);
 
@@ -313,7 +313,7 @@ function deleteTaskAction(PDO $pdo, array $config, int $taskId): void
             'task_id' => $taskId,
         ]);
 
-        jsonResponse(404, [
+        taskJsonResponse(404, [
             'success' => false,
             'message' => 'Tarefa não encontrada.',
             'errors' => [],
@@ -328,7 +328,7 @@ function deleteTaskAction(PDO $pdo, array $config, int $taskId): void
             'task_id' => $taskId,
         ]);
 
-        jsonResponse(500, [
+        taskJsonResponse(500, [
             'success' => false,
             'message' => 'Falha ao excluir tarefa.',
             'errors' => [],
@@ -353,7 +353,7 @@ function deleteTaskAction(PDO $pdo, array $config, int $taskId): void
         'task_id' => $taskId,
     ]);
 
-    jsonResponse(200, [
+    taskJsonResponse(200, [
         'success' => true,
         'message' => 'Tarefa excluída com sucesso.',
     ]);
@@ -363,7 +363,7 @@ function taskReadyCheck(PDO $pdo): void
 {
     $pdo->query('SELECT 1');
 
-    jsonResponse(200, [
+    taskJsonResponse(200, [
         'success' => true,
         'message' => 'Task service ready.',
     ]);

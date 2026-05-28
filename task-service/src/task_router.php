@@ -7,7 +7,7 @@ require_once __DIR__ . '/task_helpers.php';
 function dispatchTask(PDO $pdo, array $config): void
 {
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-    $path = normalizeTaskPath($_SERVER['REQUEST_URI'] ?? '/');
+    $path = taskNormalizePath($_SERVER['REQUEST_URI'] ?? '/');
 
     if ($method === 'OPTIONS') {
         http_response_code(204);
@@ -23,12 +23,12 @@ function dispatchTask(PDO $pdo, array $config): void
             listTasksAction($pdo, $config);
         }
 
-        methodNotAllowed(['GET', 'POST']);
+        taskMethodNotAllowed(['GET', 'POST']);
     }
 
     if ($path === '/ready') {
         if ($method !== 'GET') {
-            methodNotAllowed(['GET']);
+            taskMethodNotAllowed(['GET']);
         }
         taskReadyCheck($pdo);
     }
@@ -48,10 +48,10 @@ function dispatchTask(PDO $pdo, array $config): void
             deleteTaskAction($pdo, $config, $taskId);
         }
 
-        methodNotAllowed(['GET', 'PUT', 'DELETE']);
+        taskMethodNotAllowed(['GET', 'PUT', 'DELETE']);
     }
 
-    jsonResponse(404, [
+    taskJsonResponse(404, [
         'success' => false,
         'message' => 'Rota não encontrada.',
         'errors' => [],

@@ -1,56 +1,64 @@
 <?php
+declare(strict_types=1);
 
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunClassInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
-require_once __DIR__ . '/../../task-service/src/task_helpers.php';
-
+#[RunClassInSeparateProcess]
+#[PreserveGlobalState(false)]
 final class CadastrarTarefaTest extends TestCase
 {
-    public function testCadastroTarefaComDadosValidos(): void
+    public static function setUpBeforeClass(): void
     {
-        $dados = [
-            'usuario_id' => 1,
-            'titulo' => 'Estudar DevSecOps',
-            'descricao' => 'Fazer testes unitários com PHPUnit',
-            'prioridade' => 'alta',
-            'prazo' => '2026-04-30',
-            'status' => 'pendente'
-        ];
-
-        $resultado = validarDadosTarefa($dados);
-
-        $this->assertTrue($resultado);
+        require_once dirname(__DIR__, 2) . '/task-service/src/task_helpers.php';
     }
 
-    public function testCadastroTarefaSemTituloDeveFalhar(): void
+    public function testRequireFieldsReturnsErrorWhenTitleIsMissing(): void
     {
-        $dados = [
-            'usuario_id' => 1,
-            'titulo' => '',
-            'descricao' => 'Fazer testes unitários',
-            'prioridade' => 'alta',
-            'prazo' => '2026-04-30',
-            'status' => 'pendente'
+        $data = [
+            'description' => 'Teste',
         ];
 
-        $resultado = validarDadosTarefa($dados);
+        $errors = taskRequireFields($data, ['title']);
 
-        $this->assertFalse($resultado);
+        $this->assertArrayHasKey('title', $errors);
+        $this->assertSame("O campo 'title' é obrigatório.", $errors['title']);
     }
 
-    public function testCadastroTarefaComPrioridadeInvalidaDeveFalhar(): void
+    public function testIsValidPriorityAcceptsAllowedValues(): void
     {
-        $dados = [
-            'usuario_id' => 1,
-            'titulo' => 'Estudar',
-            'descricao' => 'Descrição da tarefa',
-            'prioridade' => 'urgente',
-            'prazo' => '2026-04-30',
-            'status' => 'pendente'
-        ];
+        $this->assertTrue(taskIsValidPriority('baixa'));
+        $this->assertTrue(taskIsValidPriority('media'));
+        $this->assertTrue(taskIsValidPriority('alta'));
+    }
 
-        $resultado = validarDadosTarefa($dados);
+    public function testIsValidPriorityRejectsInvalidValue(): void
+    {
+        $this->assertFalse(taskIsValidPriority('urgente'));
+    }
 
-        $this->assertFalse($resultado);
+    public function testIsValidStatusAcceptsAllowedValues(): void
+    {
+        $this->assertTrue(taskIsValidStatus('pendente'));
+        $this->assertTrue(taskIsValidStatus('em_andamento'));
+        $this->assertTrue(taskIsValidStatus('concluida'));
+    }
+
+    public function testIsValidStatusRejectsInvalidValue(): void
+    {
+        $this->assertFalse(taskIsValidStatus('finalizada'));
+    }
+
+    public function testIsValidDateAcceptsValidDateAndEmptyDate(): void
+    {
+        $this->assertTrue(taskIsValidDate('2026-05-30'));
+        $this->assertTrue(taskIsValidDate(''));
+        $this->assertTrue(taskIsValidDate(null));
+    }
+
+    public function testIsValidDateRejectsInvalidDate(): void
+    {
+        $this->assertFalse(taskIsValidDate('2026-99-99'));
     }
 }

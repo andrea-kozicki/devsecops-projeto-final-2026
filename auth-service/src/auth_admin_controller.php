@@ -8,10 +8,10 @@ require_once __DIR__ . '/auth_audit_repository.php';
 
 function listUsersAction(PDO $pdo): void
 {
-    $authenticatedUser = requireAuthenticatedUser($pdo);
+    $authenticatedUser = authRequireAuthenticatedUser($pdo);
 
     if (($authenticatedUser['role'] ?? '') !== 'admin') {
-        jsonResponse(403, [
+        authJsonResponse(403, [
             'success' => false,
             'message' => 'Acesso negado.',
             'errors' => [],
@@ -34,7 +34,7 @@ function listUsersAction(PDO $pdo): void
         ]
     );
 
-    jsonResponse(200, [
+    authJsonResponse(200, [
         'success' => true,
         'message' => 'Usuários carregados com sucesso.',
         'data' => $users,
@@ -43,10 +43,10 @@ function listUsersAction(PDO $pdo): void
 
 function blockUserAction(PDO $pdo, int $targetUserId): void
 {
-    $authenticatedUser = requireAuthenticatedUser($pdo);
+    $authenticatedUser = authRequireAuthenticatedUser($pdo);
 
     if (($authenticatedUser['role'] ?? '') !== 'admin') {
-        jsonResponse(403, [
+        authJsonResponse(403, [
             'success' => false,
             'message' => 'Acesso negado.',
             'errors' => [],
@@ -54,7 +54,7 @@ function blockUserAction(PDO $pdo, int $targetUserId): void
     }
 
     if ((int) $authenticatedUser['id'] === $targetUserId) {
-        jsonResponse(422, [
+        authJsonResponse(422, [
             'success' => false,
             'message' => 'Você não pode bloquear a própria conta.',
             'errors' => [],
@@ -64,7 +64,7 @@ function blockUserAction(PDO $pdo, int $targetUserId): void
     $targetUser = findUserById($pdo, $targetUserId);
 
     if (!$targetUser) {
-        jsonResponse(404, [
+        authJsonResponse(404, [
             'success' => false,
             'message' => 'Usuário não encontrado.',
             'errors' => [],
@@ -87,7 +87,7 @@ function blockUserAction(PDO $pdo, int $targetUserId): void
         ]
     );
 
-    jsonResponse(200, [
+    authJsonResponse(200, [
         'success' => true,
         'message' => 'Usuário bloqueado com sucesso.',
         'data' => $updatedUser,
@@ -96,10 +96,10 @@ function blockUserAction(PDO $pdo, int $targetUserId): void
 
 function reactivateUserAction(PDO $pdo, int $targetUserId): void
 {
-    $authenticatedUser = requireAuthenticatedUser($pdo);
+    $authenticatedUser = authRequireAuthenticatedUser($pdo);
 
     if (($authenticatedUser['role'] ?? '') !== 'admin') {
-        jsonResponse(403, [
+        authJsonResponse(403, [
             'success' => false,
             'message' => 'Acesso negado.',
             'errors' => [],
@@ -109,7 +109,7 @@ function reactivateUserAction(PDO $pdo, int $targetUserId): void
     $targetUser = findUserById($pdo, $targetUserId);
 
     if (!$targetUser) {
-        jsonResponse(404, [
+        authJsonResponse(404, [
             'success' => false,
             'message' => 'Usuário não encontrado.',
             'errors' => [],
@@ -132,7 +132,7 @@ function reactivateUserAction(PDO $pdo, int $targetUserId): void
         ]
     );
 
-    jsonResponse(200, [
+    authJsonResponse(200, [
         'success' => true,
         'message' => 'Usuário reativado com sucesso.',
         'data' => $updatedUser,
@@ -141,10 +141,10 @@ function reactivateUserAction(PDO $pdo, int $targetUserId): void
 
 function listAuditLogsAction(PDO $pdo): void
 {
-    $authenticatedUser = requireAuthenticatedUser($pdo);
+    $authenticatedUser = authRequireAuthenticatedUser($pdo);
 
     if (($authenticatedUser['role'] ?? '') !== 'admin') {
-        jsonResponse(403, [
+        authJsonResponse(403, [
             'success' => false,
             'message' => 'Acesso negado.',
             'errors' => [],
@@ -167,7 +167,7 @@ function listAuditLogsAction(PDO $pdo): void
         ]
     );
 
-    jsonResponse(200, [
+    authJsonResponse(200, [
         'success' => true,
         'message' => 'Auditoria carregada com sucesso.',
         'data' => $logs,

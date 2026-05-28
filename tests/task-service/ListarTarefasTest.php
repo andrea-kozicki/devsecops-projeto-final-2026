@@ -1,54 +1,50 @@
 <?php
+declare(strict_types=1);
 
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunClassInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
-require_once __DIR__ . '/../../task-service/src/task_helpers.php';
-
+#[RunClassInSeparateProcess]
+#[PreserveGlobalState(false)]
 final class ListarTarefasTest extends TestCase
 {
-    public function testListarApenasTarefasDoUsuarioAutenticado(): void
+    public static function setUpBeforeClass(): void
     {
-        $tarefas = [
-            [
-                'id' => 1,
-                'usuario_id' => 1,
-                'titulo' => 'Tarefa da Andrea',
-                'status' => 'pendente'
-            ],
-            [
-                'id' => 2,
-                'usuario_id' => 2,
-                'titulo' => 'Tarefa de outro usuário',
-                'status' => 'pendente'
-            ],
-            [
-                'id' => 3,
-                'usuario_id' => 1,
-                'titulo' => 'Outra tarefa da Andrea',
-                'status' => 'concluida'
-            ],
-        ];
-
-        $resultado = filtrarTarefasPorUsuario($tarefas, 1);
-
-        $this->assertCount(2, $resultado);
-        $this->assertEquals(1, $resultado[0]['usuario_id']);
-        $this->assertEquals(1, $resultado[1]['usuario_id']);
+        require_once dirname(__DIR__, 2) . '/task-service/src/task_helpers.php';
     }
 
-    public function testUsuarioSemTarefasRecebeListaVazia(): void
+    public function testNormalizeTaskPathRemovesKnownPrefixes(): void
     {
-        $tarefas = [
-            [
-                'id' => 1,
-                'usuario_id' => 1,
-                'titulo' => 'Tarefa da Andrea',
-                'status' => 'pendente'
-            ],
-        ];
+        $this->assertSame('/tasks', taskNormalizePath('/internal-tasks/tasks'));
+        $this->assertSame('/tasks', taskNormalizePath('/task-service/public/tasks'));
+        $this->assertSame('/tasks', taskNormalizePath('/task-service/tasks'));
+    }
 
-        $resultado = filtrarTarefasPorUsuario($tarefas, 99);
+    public function testTaskClientIpUsesForwardedForWhenPresent(): void
+    {
+        $_SERVER['HTTP_X_FORWARDED_FOR'] = '203.0.113.10, 10.0.0.1';
+        $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
 
-        $this->assertEmpty($resultado);
+        $this->assertSame('203.0.113.10', taskClientIp());
+
+        unset($_SERVER['HTTP_X_FORWARDED_FOR'], $_SERVER['REMOTE_ADDR']);
+    }
+
+    public function testTaskClientIpFallsBackToRemoteAddr(): void
+    {
+        unset($_SERVER['HTTP_X_FORWARDED_FOR']);
+        $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
+
+        $this->assertSame('127.0.0.1', taskClientIp());
+
+        unset($_SERVER['REMOTE_ADDR']);
+    }
+
+    public function testTaskClientIpReturnsUnknownWhenNoServerAddressExists(): void
+    {
+        unset($_SERVER['HTTP_X_FORWARDED_FOR'], $_SERVER['REMOTE_ADDR']);
+
+        $this->assertSame('unknown', taskClientIp());
     }
 }

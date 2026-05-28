@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-function jsonResponse(int $statusCode, array $payload): void
+function taskJsonResponse(int $statusCode, array $payload): void
 {
     http_response_code($statusCode);
     header('Content-Type: application/json; charset=utf-8');
@@ -10,7 +10,7 @@ function jsonResponse(int $statusCode, array $payload): void
     exit;
 }
 
-function getJsonInput(): array
+function taskGetJsonInput(): array
 {
     $raw = file_get_contents('php://input');
 
@@ -21,7 +21,7 @@ function getJsonInput(): array
     $data = json_decode($raw, true);
 
     if (json_last_error() !== JSON_ERROR_NONE) {
-        jsonResponse(400, [
+        taskJsonResponse(400, [
             'success' => false,
             'message' => 'JSON inválido.',
             'errors' => ['json' => json_last_error_msg()],
@@ -31,7 +31,7 @@ function getJsonInput(): array
     return is_array($data) ? $data : [];
 }
 
-function getBearerToken(): ?string
+function taskGetBearerToken(): ?string
 {
     $authorization = null;
 
@@ -56,7 +56,7 @@ function getBearerToken(): ?string
     return $token !== '' ? $token : null;
 }
 
-function normalizeTaskPath(?string $requestUri): string
+function taskNormalizePath(?string $requestUri): string
 {
     $path = parse_url($requestUri ?? '/', PHP_URL_PATH) ?: '/';
 
@@ -78,7 +78,7 @@ function normalizeTaskPath(?string $requestUri): string
     return $path === '//' ? '/' : (rtrim($path, '/') ?: '/');
 }
 
-function requireFields(array $data, array $requiredFields): array
+function taskRequireFields(array $data, array $requiredFields): array
 {
     $errors = [];
 
@@ -91,17 +91,17 @@ function requireFields(array $data, array $requiredFields): array
     return $errors;
 }
 
-function isValidPriority(string $priority): bool
+function taskIsValidPriority(string $priority): bool
 {
     return in_array($priority, ['baixa', 'media', 'alta'], true);
 }
 
-function isValidStatus(string $status): bool
+function taskIsValidStatus(string $status): bool
 {
     return in_array($status, ['pendente', 'em_andamento', 'concluida'], true);
 }
 
-function isValidDate(?string $date): bool
+function taskIsValidDate(?string $date): bool
 {
     if ($date === null || $date === '') {
         return true;
@@ -111,7 +111,7 @@ function isValidDate(?string $date): bool
     return $dt !== false && $dt->format('Y-m-d') === $date;
 }
 
-function fetchAuthenticatedUser(array $config, string $token): ?array
+function taskFetchAuthenticatedUser(array $config, string $token): ?array
 {
     $url = rtrim($config['auth_service_url'], '/') . '/auth/me';
 
@@ -127,8 +127,12 @@ function fetchAuthenticatedUser(array $config, string $token): ?array
     $context = stream_context_create($opts);
     $response = @file_get_contents($url, false, $context);
 
+    $responseHeaders = function_exists('http_get_last_response_headers')
+    ? http_get_last_response_headers()
+    : [];
+
     $statusCode = 0;
-    if (isset($http_response_header[0]) && preg_match('#\s(\d{3})\s#', $http_response_header[0], $matches)) {
+    if (is_array($responseHeaders) && isset($responseHeaders[0]) && preg_match('#\s(\d{3})\s#', $responseHeaders[0], $matches)) {
         $statusCode = (int) $matches[1];
     }
 
@@ -145,22 +149,22 @@ function fetchAuthenticatedUser(array $config, string $token): ?array
     return is_array($decoded['data'] ?? null) ? $decoded['data'] : null;
 }
 
-function requireAuthenticatedUser(array $config): array
+function taskRequireAuthenticatedUser(array $config): array
 {
-    $token = getBearerToken();
+    $token = taskGetBearerToken();
 
     if ($token === null) {
-        jsonResponse(401, [
+        taskJsonResponse(401, [
             'success' => false,
             'message' => 'Token não informado.',
             'errors' => [],
         ]);
     }
 
-    $user = fetchAuthenticatedUser($config, $token);
+    $user = taskFetchAuthenticatedUser($config, $token);
 
     if ($user === null) {
-        jsonResponse(401, [
+        taskJsonResponse(401, [
             'success' => false,
             'message' => 'Token inválido ou expirado.',
             'errors' => [],
@@ -185,11 +189,11 @@ function taskClientIp(): string
     $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '';
     return $remoteAddr !== '' ? $remoteAddr : 'unknown';
 }
-function methodNotAllowed(array $allowedMethods): void
+function taskMethodNotAllowed(array $allowedMethods): void
 {
     header('Allow: ' . implode(', ', $allowedMethods));
 
-    jsonResponse(405, [
+    taskJsonResponse(405, [
         'success' => false,
         'message' => 'Método não permitido.',
         'errors' => [],

@@ -9,10 +9,10 @@ require_once __DIR__ . '/auth_audit_repository.php';
 
 function getProfile(PDO $pdo): void
 {
-    $token = getBearerToken();
+    $token = authGetBearerToken();
 
     if ($token === null) {
-        jsonResponse(401, [
+        authJsonResponse(401, [
             'success' => false,
             'message' => 'Token não informado.',
             'errors' => [],
@@ -23,7 +23,7 @@ function getProfile(PDO $pdo): void
     $record = findValidTokenRecord($pdo, $tokenHash);
 
     if ($record === null) {
-        jsonResponse(401, [
+        authJsonResponse(401, [
             'success' => false,
             'message' => 'Token inválido ou expirado.',
             'errors' => [],
@@ -32,17 +32,17 @@ function getProfile(PDO $pdo): void
 
     touchTokenUsage($pdo, (int) $record['token_id']);
 
-    jsonResponse(200, [
+    authJsonResponse(200, [
         'success' => true,
         'message' => 'Perfil carregado com sucesso.',
-        'data' => sanitizeUserOutput($record),
+        'data' => authSanitizeUserOutput($record),
     ]);
 }
 
 function updateProfile(PDO $pdo): void
 {
-    $authenticatedUser = requireAuthenticatedUser($pdo);
-    $data = getJsonInput();
+    $authenticatedUser = authRequireAuthenticatedUser($pdo);
+    $data = authGetJsonInput();
 
     $name = array_key_exists('name', $data) ? trim((string) $data['name']) : null;
     $email = array_key_exists('email', $data) ? mb_strtolower(trim((string) $data['email'])) : null;
@@ -66,7 +66,7 @@ function updateProfile(PDO $pdo): void
             $errors['email'] = 'O e-mail é obrigatório.';
         } elseif (mb_strlen($email) > 150) {
             $errors['email'] = 'O e-mail deve ter no máximo 150 caracteres.';
-        } elseif (!validateEmailAddress($email)) {
+        } elseif (!authValidateEmailAddress($email)) {
             $errors['email'] = 'Informe um e-mail válido.';
         } else {
             $existingUser = findUserByEmail($pdo, $email);
@@ -89,7 +89,7 @@ function updateProfile(PDO $pdo): void
     }
 
     if (!empty($errors)) {
-        jsonResponse(422, [
+        authJsonResponse(422, [
             'success' => false,
             'message' => 'Dados inválidos.',
             'errors' => $errors,
@@ -97,7 +97,7 @@ function updateProfile(PDO $pdo): void
     }
 
     if (empty($fields)) {
-        jsonResponse(422, [
+        authJsonResponse(422, [
             'success' => false,
             'message' => 'Nenhum dado informado para atualização.',
             'errors' => [],
@@ -117,7 +117,7 @@ function updateProfile(PDO $pdo): void
         ['fields' => array_keys($fields)]
     );
 
-    jsonResponse(200, [
+    authJsonResponse(200, [
         'success' => true,
         'message' => 'Perfil atualizado com sucesso.',
         'data' => $updatedUser,

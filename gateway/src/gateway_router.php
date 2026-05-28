@@ -9,7 +9,7 @@ require_once __DIR__ . '/gateway_logger.php';
 function dispatchGateway(array $config): void
 {
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-    $path = normalizeGatewayPath($_SERVER['REQUEST_URI'] ?? '/');
+    $path = gatewayNormalizePath($_SERVER['REQUEST_URI'] ?? '/');
 
     if ($method === 'OPTIONS') {
         http_response_code(204);
@@ -18,10 +18,10 @@ function dispatchGateway(array $config): void
 
     if ($path === '/health') {
         if ($method !== 'GET') {
-            methodNotAllowed(['GET']);
+            gatewayMethodNotAllowed(['GET']);
         }
 
-        jsonResponse(200, [
+        gatewayJsonResponse(200, [
             'success' => true,
             'message' => 'Gateway healthy.',
         ]);
@@ -29,7 +29,7 @@ function dispatchGateway(array $config): void
 
     if ($path === '/ready') {
         if ($method !== 'GET') {
-            methodNotAllowed(['GET']);
+            gatewayMethodNotAllowed(['GET']);
         }
 
         gatewayReadyCheck($config);
@@ -42,14 +42,14 @@ function dispatchGateway(array $config): void
 
     if ($path === '/auth/register') {
         if ($method !== 'POST') {
-            methodNotAllowed(['POST']);
+            gatewayMethodNotAllowed(['POST']);
         }
         forwardRequest($authBase . '/auth/register');
     }
 
     if ($path === '/auth/login') {
         if ($method !== 'POST') {
-            methodNotAllowed(['POST']);
+            gatewayMethodNotAllowed(['POST']);
         }
         forwardRequest($authBase . '/auth/login');
     }
@@ -58,61 +58,61 @@ function dispatchGateway(array $config): void
         if ($method === 'GET' || $method === 'PUT') {
             forwardRequest($authBase . '/auth/me');
         }
-        methodNotAllowed(['GET', 'PUT']);
+        gatewayMethodNotAllowed(['GET', 'PUT']);
     }
 
     if ($path === '/auth/logout') {
         if ($method !== 'POST') {
-            methodNotAllowed(['POST']);
+            gatewayMethodNotAllowed(['POST']);
         }
         forwardRequest($authBase . '/auth/logout');
     }
 
     if ($path === '/auth/password/forgot') {
         if ($method !== 'POST') {
-            methodNotAllowed(['POST']);
+            gatewayMethodNotAllowed(['POST']);
         }
         forwardRequest($authBase . '/auth/password/forgot');
     }
 
     if ($path === '/auth/password/reset') {
         if ($method !== 'POST') {
-            methodNotAllowed(['POST']);
+            gatewayMethodNotAllowed(['POST']);
         }
         forwardRequest($authBase . '/auth/password/reset');
     }
 
     if ($path === '/auth/mfa/status') {
         if ($method !== 'GET') {
-            methodNotAllowed(['GET']);
+            gatewayMethodNotAllowed(['GET']);
         }
         forwardRequest($authBase . '/auth/mfa/status');
     }
 
     if ($path === '/auth/mfa/setup') {
         if ($method !== 'POST') {
-            methodNotAllowed(['POST']);
+            gatewayMethodNotAllowed(['POST']);
         }
         forwardRequest($authBase . '/auth/mfa/setup');
     }
 
     if ($path === '/auth/mfa/enable') {
         if ($method !== 'POST') {
-            methodNotAllowed(['POST']);
+            gatewayMethodNotAllowed(['POST']);
         }
         forwardRequest($authBase . '/auth/mfa/enable');
     }
 
     if ($path === '/auth/mfa/disable') {
         if ($method !== 'POST') {
-            methodNotAllowed(['POST']);
+            gatewayMethodNotAllowed(['POST']);
         }
         forwardRequest($authBase . '/auth/mfa/disable');
     }
 
     if ($path === '/auth/mfa/verify-login') {
         if ($method !== 'POST') {
-            methodNotAllowed(['POST']);
+            gatewayMethodNotAllowed(['POST']);
         }
         forwardRequest($authBase . '/auth/mfa/verify-login');
     }
@@ -121,7 +121,7 @@ function dispatchGateway(array $config): void
         if ($method === 'GET' || $method === 'POST') {
             forwardRequest($taskBase . '/tasks');
         }
-        methodNotAllowed(['GET', 'POST']);
+        gatewayMethodNotAllowed(['GET', 'POST']);
     }
 
     if (preg_match('#^/tasks/(\d+)$#', $path, $matches)) {
@@ -131,33 +131,33 @@ function dispatchGateway(array $config): void
         if ($method === 'GET' || $method === 'PUT' || $method === 'DELETE') {
             forwardRequest($target);
         }
-        methodNotAllowed(['GET', 'PUT', 'DELETE']);
+        gatewayMethodNotAllowed(['GET', 'PUT', 'DELETE']);
     }
 
     if ($path === '/admin/users') {
         if ($method !== 'GET') {
-            methodNotAllowed(['GET']);
+            gatewayMethodNotAllowed(['GET']);
         }
         forwardRequest($authBase . '/admin/users');
     }
 
     if (preg_match('#^/admin/users/(\d+)/block$#', $path, $matches)) {
         if ($method !== 'POST') {
-            methodNotAllowed(['POST']);
+            gatewayMethodNotAllowed(['POST']);
         }
         forwardRequest($authBase . '/admin/users/' . (int) $matches[1] . '/block');
     }
 
     if (preg_match('#^/admin/users/(\d+)/reactivate$#', $path, $matches)) {
         if ($method !== 'POST') {
-            methodNotAllowed(['POST']);
+            gatewayMethodNotAllowed(['POST']);
         }
         forwardRequest($authBase . '/admin/users/' . (int) $matches[1] . '/reactivate');
     }
 
     if ($path === '/admin/audit') {
         if ($method !== 'GET') {
-            methodNotAllowed(['GET']);
+            gatewayMethodNotAllowed(['GET']);
         }
         forwardRequest($authBase . '/admin/audit');
     }
@@ -167,7 +167,7 @@ function dispatchGateway(array $config): void
         'path' => $path,
     ]);
 
-    jsonResponse(404, [
+    gatewayJsonResponse(404, [
         'success' => false,
         'message' => 'Rota não encontrada.',
         'errors' => [],

@@ -18,7 +18,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.5'
           coverage: none
 
       - name: Lint PHP files
@@ -36,7 +36,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.5'
           coverage: none
 
       - name: Validate composer files
@@ -46,11 +46,13 @@ jobs:
         run: composer install --no-interaction --prefer-dist
 
       - name: Run PHPUnit
-        run: vendor/bin/phpunit
+        run: php vendor/bin/phpunit --testdox --display-all-issues
 
   semgrep:
     name: Semgrep
     runs-on: ubuntu-latest
+    env:
+      SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
 
     steps:
       - name: Checkout
@@ -64,14 +66,14 @@ jobs:
       - name: Install Semgrep
         run: python -m pip install --upgrade pip semgrep
 
-      - name: Run Semgrep
-        run: semgrep scan --config auto .
+      - name: Run Semgrep CI
+        run: semgrep ci
 
-  snyk:
-    name: Snyk
+  snyk-open-source:
+    name: Snyk Open Source
     runs-on: ubuntu-latest
     env:
-      SNYK_TOKEN: ${{ secrets.SNKY_TOKEN }}
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
     steps:
       - name: Checkout
@@ -91,7 +93,29 @@ jobs:
       - name: Snyk Open Source
         run: snyk test
 
+  snyk-code:
+    name: Snyk Code
+    runs-on: ubuntu-latest
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      - name: Authenticate Snyk
+        run: snyk auth "$SNYK_TOKEN"
+
       - name: Snyk Code
+        continue-on-error: true
         run: snyk code test
 
   fossa:

@@ -11,10 +11,10 @@ require_once __DIR__ . '/auth_mfa.php';
 
 function mfaStatusAction(PDO $pdo): void
 {
-    $authenticatedUser = requireAuthenticatedUser($pdo);
+    $authenticatedUser = authRequireAuthenticatedUser($pdo);
     $mfa = getUserMfaByUserId($pdo, (int) $authenticatedUser['id']);
 
-    jsonResponse(200, [
+    authJsonResponse(200, [
         'success' => true,
         'message' => 'Status MFA carregado com sucesso.',
         'data' => [
@@ -25,7 +25,7 @@ function mfaStatusAction(PDO $pdo): void
 
 function mfaSetupAction(PDO $pdo): void
 {
-    $authenticatedUser = requireAuthenticatedUser($pdo);
+    $authenticatedUser = authRequireAuthenticatedUser($pdo);
 
     $secret = generateBase32Secret();
     upsertUserMfaSecret($pdo, (int) $authenticatedUser['id'], $secret, false);
@@ -45,7 +45,7 @@ function mfaSetupAction(PDO $pdo): void
         ]
     );
 
-    jsonResponse(200, [
+    authJsonResponse(200, [
         'success' => true,
         'message' => 'Configuração MFA iniciada.',
         'data' => [
@@ -57,14 +57,14 @@ function mfaSetupAction(PDO $pdo): void
 
 function mfaEnableAction(PDO $pdo): void
 {
-    $authenticatedUser = requireAuthenticatedUser($pdo);
-    $data = getJsonInput();
+    $authenticatedUser = authRequireAuthenticatedUser($pdo);
+    $data = authGetJsonInput();
 
     $code = trim((string) ($data['code'] ?? ''));
     $codeError = validateSixDigitCode($code);
 
     if ($codeError !== null) {
-        jsonResponse(422, [
+        authJsonResponse(422, [
             'success' => false,
             'message' => 'Código MFA inválido.',
             'errors' => ['code' => $codeError],
@@ -74,7 +74,7 @@ function mfaEnableAction(PDO $pdo): void
     $mfa = getUserMfaByUserId($pdo, (int) $authenticatedUser['id']);
 
     if (!$mfa) {
-        jsonResponse(404, [
+        authJsonResponse(404, [
             'success' => false,
             'message' => 'Configuração MFA não encontrada.',
             'errors' => [],
@@ -82,7 +82,7 @@ function mfaEnableAction(PDO $pdo): void
     }
 
     if (!verifyTotpCode((string) $mfa['totp_secret'], $code)) {
-        jsonResponse(401, [
+        authJsonResponse(401, [
             'success' => false,
             'message' => 'Código MFA inválido.',
             'errors' => [],
@@ -104,7 +104,7 @@ function mfaEnableAction(PDO $pdo): void
         ]
     );
 
-    jsonResponse(200, [
+    authJsonResponse(200, [
         'success' => true,
         'message' => 'MFA habilitado com sucesso.',
         'data' => [],
@@ -113,14 +113,14 @@ function mfaEnableAction(PDO $pdo): void
 
 function mfaDisableAction(PDO $pdo): void
 {
-    $authenticatedUser = requireAuthenticatedUser($pdo);
-    $data = getJsonInput();
+    $authenticatedUser = authRequireAuthenticatedUser($pdo);
+    $data = authGetJsonInput();
 
     $code = trim((string) ($data['code'] ?? ''));
     $codeError = validateSixDigitCode($code);
 
     if ($codeError !== null) {
-        jsonResponse(422, [
+        authJsonResponse(422, [
             'success' => false,
             'message' => 'Código MFA inválido.',
             'errors' => ['code' => $codeError],
@@ -130,7 +130,7 @@ function mfaDisableAction(PDO $pdo): void
     $mfa = getUserMfaByUserId($pdo, (int) $authenticatedUser['id']);
 
     if (!$mfa || (int) $mfa['is_enabled'] !== 1) {
-        jsonResponse(404, [
+        authJsonResponse(404, [
             'success' => false,
             'message' => 'MFA não está habilitado.',
             'errors' => [],
@@ -138,7 +138,7 @@ function mfaDisableAction(PDO $pdo): void
     }
 
     if (!verifyTotpCode((string) $mfa['totp_secret'], $code)) {
-        jsonResponse(401, [
+        authJsonResponse(401, [
             'success' => false,
             'message' => 'Código MFA inválido.',
             'errors' => [],
@@ -160,7 +160,7 @@ function mfaDisableAction(PDO $pdo): void
         ]
     );
 
-    jsonResponse(200, [
+    authJsonResponse(200, [
         'success' => true,
         'message' => 'MFA desabilitado com sucesso.',
         'data' => [],
@@ -169,7 +169,7 @@ function mfaDisableAction(PDO $pdo): void
 
 function verifyLoginMfaAction(PDO $pdo, array $config): void
 {
-    $data = getJsonInput();
+    $data = authGetJsonInput();
     $challengeToken = trim((string) ($data['challenge_token'] ?? ''));
     $code = trim((string) ($data['code'] ?? ''));
 
@@ -185,7 +185,7 @@ function verifyLoginMfaAction(PDO $pdo, array $config): void
     }
 
     if (!empty($errors)) {
-        jsonResponse(422, [
+        authJsonResponse(422, [
             'success' => false,
             'message' => 'Dados inválidos.',
             'errors' => $errors,
@@ -195,7 +195,7 @@ function verifyLoginMfaAction(PDO $pdo, array $config): void
     $record = findValidLoginChallenge($pdo, hashOpaqueToken($challengeToken));
 
     if ($record === null) {
-        jsonResponse(401, [
+        authJsonResponse(401, [
             'success' => false,
             'message' => 'Challenge MFA inválido ou expirado.',
             'errors' => [],
@@ -205,7 +205,7 @@ function verifyLoginMfaAction(PDO $pdo, array $config): void
     $mfa = getUserMfaByUserId($pdo, (int) $record['user_id']);
 
     if (!$mfa || (int) $mfa['is_enabled'] !== 1) {
-        jsonResponse(401, [
+        authJsonResponse(401, [
             'success' => false,
             'message' => 'MFA não habilitado para este usuário.',
             'errors' => [],
@@ -227,7 +227,7 @@ function verifyLoginMfaAction(PDO $pdo, array $config): void
             ]
         );
 
-        jsonResponse(401, [
+        authJsonResponse(401, [
             'success' => false,
             'message' => 'Código MFA inválido.',
             'errors' => [],
@@ -256,14 +256,14 @@ function verifyLoginMfaAction(PDO $pdo, array $config): void
         ]
     );
 
-    jsonResponse(200, [
+    authJsonResponse(200, [
         'success' => true,
         'message' => 'Login MFA realizado com sucesso.',
         'data' => [
             'access_token' => $plainToken,
             'token_type' => 'Bearer',
             'expires_at' => $expiresAt,
-            'user' => sanitizeUserOutput($record),
+            'user' => authSanitizeUserOutput($record),
         ],
     ]);
 }

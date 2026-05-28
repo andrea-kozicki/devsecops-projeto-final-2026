@@ -4,7 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/auth_repository.php';
 require_once __DIR__ . '/auth_token_service.php';
 
-function jsonResponse(int $statusCode, array $payload): void
+function authJsonResponse(int $statusCode, array $payload): void
 {
     http_response_code($statusCode);
     header('Content-Type: application/json; charset=utf-8');
@@ -13,7 +13,7 @@ function jsonResponse(int $statusCode, array $payload): void
     exit;
 }
 
-function getJsonInput(): array
+function authGetJsonInput(): array
 {
     $raw = file_get_contents('php://input');
 
@@ -24,7 +24,7 @@ function getJsonInput(): array
     $data = json_decode($raw, true);
 
     if (json_last_error() !== JSON_ERROR_NONE) {
-        jsonResponse(400, [
+        authJsonResponse(400, [
             'success' => false,
             'message' => 'JSON inválido.',
             'errors' => ['json' => json_last_error_msg()],
@@ -34,7 +34,7 @@ function getJsonInput(): array
     return is_array($data) ? $data : [];
 }
 
-function getBearerToken(): ?string
+function authGetBearerToken(): ?string
 {
     $authorization = null;
 
@@ -59,12 +59,12 @@ function getBearerToken(): ?string
     return $token !== '' ? $token : null;
 }
 
-function requireAuthenticatedUser(PDO $pdo): array
+function authRequireAuthenticatedUser(PDO $pdo): array
 {
-    $token = getBearerToken();
+    $token = authGetBearerToken();
 
     if ($token === null) {
-        jsonResponse(401, [
+        authJsonResponse(401, [
             'success' => false,
             'message' => 'Token não informado.',
             'errors' => [],
@@ -75,7 +75,7 @@ function requireAuthenticatedUser(PDO $pdo): array
     $record = findValidTokenRecord($pdo, $tokenHash);
 
     if ($record === null) {
-        jsonResponse(401, [
+        authJsonResponse(401, [
             'success' => false,
             'message' => 'Token inválido ou expirado.',
             'errors' => [],
@@ -87,7 +87,7 @@ function requireAuthenticatedUser(PDO $pdo): array
     return $record;
 }
 
-function normalizeAuthPath(?string $requestUri): string
+function authNormalizePath(?string $requestUri): string
 {
     $path = parse_url($requestUri ?? '/', PHP_URL_PATH) ?: '/';
 
@@ -109,7 +109,7 @@ function normalizeAuthPath(?string $requestUri): string
     return $path === '//' ? '/' : (rtrim($path, '/') ?: '/');
 }
 
-function requireFields(array $data, array $requiredFields): array
+function authRequireFields(array $data, array $requiredFields): array
 {
     $errors = [];
 
@@ -122,12 +122,12 @@ function requireFields(array $data, array $requiredFields): array
     return $errors;
 }
 
-function validateEmailAddress(string $email): bool
+function authValidateEmailAddress(string $email): bool
 {
     return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
 }
 
-function sanitizeUserOutput(array $user): array
+function authSanitizeUserOutput(array $user): array
 {
     return [
         'id' => (int) $user['id'],
@@ -140,11 +140,11 @@ function sanitizeUserOutput(array $user): array
     ];
 }
 
-function methodNotAllowed(array $allowedMethods): void
+function authMethodNotAllowed(array $allowedMethods): void
 {
     header('Allow: ' . implode(', ', $allowedMethods));
 
-    jsonResponse(405, [
+    authJsonResponse(405, [
         'success' => false,
         'message' => 'Método não permitido.',
         'errors' => [],

@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-function jsonResponse(int $statusCode, array $payload): void
+function gatewayJsonResponse(int $statusCode, array $payload): void
 {
     http_response_code($statusCode);
     header('Content-Type: application/json; charset=utf-8');
@@ -10,7 +10,7 @@ function jsonResponse(int $statusCode, array $payload): void
     exit;
 }
 
-function normalizeGatewayPath(?string $requestUri): string
+function gatewayNormalizePath(?string $requestUri): string
 {
     $path = parse_url($requestUri ?? '/', PHP_URL_PATH) ?: '/';
 
@@ -32,7 +32,7 @@ function normalizeGatewayPath(?string $requestUri): string
     return $path === '//' ? '/' : (rtrim($path, '/') ?: '/');
 }
 
-function getBearerToken(): ?string
+function gatewayGetBearerToken(): ?string
 {
     $authorization = null;
 
@@ -57,24 +57,24 @@ function getBearerToken(): ?string
     return $token !== '' ? $token : null;
 }
 
-function getCurrentQueryString(): string
+function gatewayGetCurrentQueryString(): string
 {
     $query = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_QUERY);
     return is_string($query) && $query !== '' ? $query : '';
 }
 
-function methodNotAllowed(array $allowedMethods): void
+function gatewayMethodNotAllowed(array $allowedMethods): void
 {
     header('Allow: ' . implode(', ', $allowedMethods));
 
-    jsonResponse(405, [
+    gatewayJsonResponse(405, [
         'success' => false,
         'message' => 'Método não permitido.',
         'errors' => [],
     ]);
 }
 
-function getHttpStatusFromHeaders(array $headers): int
+function gatewayGetHttpStatusFromHeaders(array $headers): int
 {
     if (!isset($headers[0])) {
         return 0;
@@ -87,23 +87,23 @@ function getHttpStatusFromHeaders(array $headers): int
     return 0;
 }
 
-function remoteHealthOk(string $url): bool
+function gatewayRemoteHealthOk(string $url): bool
 {
     $headers = @get_headers(rtrim($url, '/') . '/health');
     if ($headers === false || !is_array($headers)) {
         return false;
     }
 
-    return getHttpStatusFromHeaders($headers) === 200;
+    return gatewayGetHttpStatusFromHeaders($headers) === 200;
 }
 
 function gatewayReadyCheck(array $config): void
 {
-    $authOk = remoteHealthOk($config['auth_service_url']);
-    $taskOk = remoteHealthOk($config['task_service_url']);
+    $authOk = gatewayRemoteHealthOk($config['auth_service_url']);
+    $taskOk = gatewayRemoteHealthOk($config['task_service_url']);
 
     if (!$authOk || !$taskOk) {
-        jsonResponse(503, [
+        gatewayJsonResponse(503, [
             'success' => false,
             'message' => 'Gateway não está pronto.',
             'errors' => [
@@ -113,7 +113,7 @@ function gatewayReadyCheck(array $config): void
         ]);
     }
 
-    jsonResponse(200, [
+    gatewayJsonResponse(200, [
         'success' => true,
         'message' => 'Gateway ready.',
     ]);

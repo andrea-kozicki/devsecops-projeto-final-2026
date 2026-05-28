@@ -11,7 +11,7 @@ require_once __DIR__ . '/auth_mfa.php';
 
 function authHealthCheck(): void
 {
-    jsonResponse(200, [
+    authJsonResponse(200, [
         'success' => true,
         'message' => 'Auth service OK',
     ]);
@@ -21,7 +21,7 @@ function authReadyCheck(PDO $pdo): void
 {
     $pdo->query('SELECT 1');
 
-    jsonResponse(200, [
+    authJsonResponse(200, [
         'success' => true,
         'message' => 'Auth service ready.',
     ]);
@@ -29,11 +29,11 @@ function authReadyCheck(PDO $pdo): void
 
 function registerUser(PDO $pdo): void
 {
-    $data = getJsonInput();
-    $errors = requireFields($data, ['name', 'email', 'password']);
+    $data = authGetJsonInput();
+    $errors = authRequireFields($data, ['name', 'email', 'password']);
 
     if (!empty($errors)) {
-        jsonResponse(422, [
+        authJsonResponse(422, [
             'success' => false,
             'message' => 'Dados inválidos.',
             'errors' => $errors,
@@ -54,7 +54,7 @@ function registerUser(PDO $pdo): void
         $errors['email'] = 'O e-mail é obrigatório.';
     } elseif (mb_strlen($email) > 150) {
         $errors['email'] = 'O e-mail deve ter no máximo 150 caracteres.';
-    } elseif (!validateEmailAddress($email)) {
+    } elseif (!authValidateEmailAddress($email)) {
         $errors['email'] = 'Informe um e-mail válido.';
     }
 
@@ -64,7 +64,7 @@ function registerUser(PDO $pdo): void
     }
 
     if (!empty($errors)) {
-        jsonResponse(422, [
+        authJsonResponse(422, [
             'success' => false,
             'message' => 'Dados inválidos.',
             'errors' => $errors,
@@ -72,7 +72,7 @@ function registerUser(PDO $pdo): void
     }
 
     if (findUserByEmail($pdo, $email) !== null) {
-        jsonResponse(409, [
+        authJsonResponse(409, [
             'success' => false,
             'message' => 'Já existe um usuário com esse e-mail.',
             'errors' => ['email' => 'E-mail já cadastrado.'],
@@ -94,20 +94,20 @@ function registerUser(PDO $pdo): void
         ['email' => $email]
     );
 
-    jsonResponse(201, [
+    authJsonResponse(201, [
         'success' => true,
         'message' => 'Usuário cadastrado com sucesso.',
-        'data' => sanitizeUserOutput($user),
+        'data' => authSanitizeUserOutput($user),
     ]);
 }
 
 function loginUser(PDO $pdo, array $config): void
 {
-    $data = getJsonInput();
-    $errors = requireFields($data, ['email', 'password']);
+    $data = authGetJsonInput();
+    $errors = authRequireFields($data, ['email', 'password']);
 
     if (!empty($errors)) {
-        jsonResponse(422, [
+        authJsonResponse(422, [
             'success' => false,
             'message' => 'Dados inválidos.',
             'errors' => $errors,
@@ -119,7 +119,7 @@ function loginUser(PDO $pdo, array $config): void
     $recentAttempts = countRecentLoginAttempts($pdo, $email, $ipAddress, 15);
 
     if ($recentAttempts >= 5) {
-        jsonResponse(429, [
+        authJsonResponse(429, [
             'success' => false,
             'message' => 'Muitas tentativas de login. Tente novamente mais tarde.',
             'errors' => [],
@@ -146,7 +146,7 @@ function loginUser(PDO $pdo, array $config): void
             ]
         );
 
-        jsonResponse(401, [
+        authJsonResponse(401, [
             'success' => false,
             'message' => 'Credenciais inválidas.',
             'errors' => [],
@@ -176,7 +176,7 @@ function loginUser(PDO $pdo, array $config): void
             ]
         );
 
-        jsonResponse(202, [
+        authJsonResponse(202, [
             'success' => true,
             'message' => 'MFA necessário para concluir o login.',
             'data' => [
@@ -208,24 +208,24 @@ function loginUser(PDO $pdo, array $config): void
         ]
     );
 
-    jsonResponse(200, [
+    authJsonResponse(200, [
         'success' => true,
         'message' => 'Login realizado com sucesso.',
         'data' => [
             'access_token' => $plainToken,
             'token_type' => 'Bearer',
             'expires_at' => $expiresAt,
-            'user' => sanitizeUserOutput($user),
+            'user' => authSanitizeUserOutput($user),
         ],
     ]);
 }
 
 function logoutUser(PDO $pdo): void
 {
-    $token = getBearerToken();
+    $token = authGetBearerToken();
 
     if ($token === null) {
-        jsonResponse(401, [
+        authJsonResponse(401, [
             'success' => false,
             'message' => 'Token não informado.',
             'errors' => [],
@@ -236,7 +236,7 @@ function logoutUser(PDO $pdo): void
     $record = findValidTokenRecord($pdo, $tokenHash);
 
     if ($record === null) {
-        jsonResponse(401, [
+        authJsonResponse(401, [
             'success' => false,
             'message' => 'Token inválido ou expirado.',
             'errors' => [],
@@ -246,7 +246,7 @@ function logoutUser(PDO $pdo): void
     $revoked = revokeTokenByHash($pdo, $tokenHash);
 
     if (!$revoked) {
-        jsonResponse(401, [
+        authJsonResponse(401, [
             'success' => false,
             'message' => 'Token inválido ou já revogado.',
             'errors' => [],
@@ -264,7 +264,7 @@ function logoutUser(PDO $pdo): void
         ['email' => $record['email'] ?? null]
     );
 
-    jsonResponse(200, [
+    authJsonResponse(200, [
         'success' => true,
         'message' => 'Logout realizado com sucesso.',
     ]);

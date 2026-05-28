@@ -10,11 +10,11 @@ require_once __DIR__ . '/auth_mfa.php';
 
 function forgotPasswordAction(PDO $pdo): void
 {
-    $data = getJsonInput();
+    $data = authGetJsonInput();
     $email = mb_strtolower(trim((string) ($data['email'] ?? '')));
 
-    if ($email === '' || !validateEmailAddress($email)) {
-        jsonResponse(422, [
+    if ($email === '' || !authValidateEmailAddress($email)) {
+        authJsonResponse(422, [
             'success' => false,
             'message' => 'E-mail inválido.',
             'errors' => ['email' => 'Informe um e-mail válido.'],
@@ -41,7 +41,7 @@ function forgotPasswordAction(PDO $pdo): void
             ['email' => $email]
         );
 
-        jsonResponse(200, [
+        authJsonResponse(200, [
             'success' => true,
             'message' => 'Se o e-mail existir, um processo de recuperação foi iniciado.',
             'data' => [
@@ -51,7 +51,7 @@ function forgotPasswordAction(PDO $pdo): void
         ]);
     }
 
-    jsonResponse(200, [
+    authJsonResponse(200, [
         'success' => true,
         'message' => 'Se o e-mail existir, um processo de recuperação foi iniciado.',
         'data' => [],
@@ -60,7 +60,7 @@ function forgotPasswordAction(PDO $pdo): void
 
 function resetPasswordAction(PDO $pdo): void
 {
-    $data = getJsonInput();
+    $data = authGetJsonInput();
     $token = trim((string) ($data['token'] ?? ''));
     $password = (string) ($data['password'] ?? '');
 
@@ -76,7 +76,7 @@ function resetPasswordAction(PDO $pdo): void
     }
 
     if (!empty($errors)) {
-        jsonResponse(422, [
+        authJsonResponse(422, [
             'success' => false,
             'message' => 'Dados inválidos.',
             'errors' => $errors,
@@ -86,7 +86,7 @@ function resetPasswordAction(PDO $pdo): void
     $record = findValidPasswordResetToken($pdo, hashOpaqueToken($token));
 
     if ($record === null) {
-        jsonResponse(401, [
+        authJsonResponse(401, [
             'success' => false,
             'message' => 'Token de recuperação inválido ou expirado.',
             'errors' => [],
@@ -110,7 +110,7 @@ function resetPasswordAction(PDO $pdo): void
         ['email' => $record['email'] ?? null]
     );
 
-    jsonResponse(200, [
+    authJsonResponse(200, [
         'success' => true,
         'message' => 'Senha redefinida com sucesso.',
         'data' => [],
