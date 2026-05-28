@@ -77,8 +77,8 @@ coverage/
 reports/
 route-test-results/
 security-test-results/
-*.fish
-
+route_smoke_tests.fish
+security_smoke_tests.fish
 
 # =========================
 # Docker local, se usar depois
