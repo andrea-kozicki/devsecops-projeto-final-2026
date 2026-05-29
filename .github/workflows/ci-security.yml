@@ -87,10 +87,7 @@ jobs:
       - name: Install Snyk CLI
         run: npm install -g snyk
 
-      - name: Authenticate Snyk
-        run: snyk auth "$SNYK_TOKEN"
-
-      - name: Snyk Open Source
+      - name: Run Snyk Open Source
         run: snyk test
 
   snyk-code:
@@ -111,10 +108,7 @@ jobs:
       - name: Install Snyk CLI
         run: npm install -g snyk
 
-      - name: Authenticate Snyk
-        run: snyk auth "$SNYK_TOKEN"
-
-      - name: Snyk Code
+      - name: Run Snyk Code
         continue-on-error: true
         run: snyk code test
 
