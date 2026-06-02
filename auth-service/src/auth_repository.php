@@ -317,36 +317,33 @@ function clearLoginAttempts(PDO $pdo, string $email, string $ipAddress): void
     ]);
 }
 
-function updateUserProfile(PDO $pdo, int $userId, array $fields): array
-{
-    $allowed = ['name', 'email', 'password_hash'];
-    $sets = [];
-    $params = ['id' => $userId];
-
-    foreach ($fields as $key => $value) {
-        if (!in_array($key, $allowed, true)) {
-            continue;
-        }
-
-        if ($key === 'password_hash') {
-            $sets[] = 'password_hash = :password_hash';
-            $params['password_hash'] = $value;
-            continue;
-        }
-
-        $sets[] = "{$key} = :{$key}";
-        $params[$key] = $value;
-    }
-
-    if (empty($sets)) {
+function updateUserProfile(
+    PDO $pdo,
+    int $userId,
+    ?string $name,
+    ?string $email,
+    ?string $passwordHash
+): array {
+    if ($name === null && $email === null && $passwordHash === null) {
         throw new InvalidArgumentException('Nenhum campo válido para atualização.');
     }
 
-    $sets[] = 'updated_at = NOW()';
+    $stmt = $pdo->prepare(
+        'UPDATE users
+         SET
+             name = COALESCE(:name, name),
+             email = COALESCE(:email, email),
+             password_hash = COALESCE(:password_hash, password_hash),
+             updated_at = NOW()
+         WHERE id = :id'
+    );
 
-    $sql = 'UPDATE users SET ' . implode(', ', $sets) . ' WHERE id = :id';
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
+    $stmt->execute([
+        'id' => $userId,
+        'name' => $name,
+        'email' => $email,
+        'password_hash' => $passwordHash,
+    ]);
 
     $updatedUser = findUserById($pdo, $userId);
 

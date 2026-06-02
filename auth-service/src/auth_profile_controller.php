@@ -49,7 +49,11 @@ function updateProfile(PDO $pdo): void
     $password = array_key_exists('password', $data) ? (string) $data['password'] : null;
 
     $errors = [];
-    $fields = [];
+    $changedFields = [];
+
+    $safeName = null;
+    $safeEmail = null;
+    $safePasswordHash = null;
 
     if ($name !== null) {
         if ($name === '') {
@@ -57,7 +61,8 @@ function updateProfile(PDO $pdo): void
         } elseif (mb_strlen($name) > 120) {
             $errors['name'] = 'O nome deve ter no máximo 120 caracteres.';
         } else {
-            $fields['name'] = $name;
+            $safeName = $name;
+            $changedFields[] = 'name';
         }
     }
 
@@ -74,17 +79,20 @@ function updateProfile(PDO $pdo): void
             if ($existingUser && (int) $existingUser['id'] !== (int) $authenticatedUser['id']) {
                 $errors['email'] = 'E-mail já cadastrado.';
             } else {
-                $fields['email'] = $email;
+                $safeEmail = $email;
+                $changedFields[] = 'email';
             }
         }
     }
 
     if ($password !== null && $password !== '') {
         $passwordError = validateStrongPassword($password, true);
+
         if ($passwordError !== null) {
             $errors['password'] = $passwordError;
         } else {
-            $fields['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
+            $safePasswordHash = password_hash($password, PASSWORD_DEFAULT);
+            $changedFields[] = 'password';
         }
     }
 
@@ -96,7 +104,7 @@ function updateProfile(PDO $pdo): void
         ]);
     }
 
-    if (empty($fields)) {
+    if (empty($changedFields)) {
         authJsonResponse(422, [
             'success' => false,
             'message' => 'Nenhum dado informado para atualização.',
@@ -104,7 +112,13 @@ function updateProfile(PDO $pdo): void
         ]);
     }
 
-    $updatedUser = updateUserProfile($pdo, (int) $authenticatedUser['id'], $fields);
+    $updatedUser = updateUserProfile(
+        $pdo,
+        (int) $authenticatedUser['id'],
+        $safeName,
+        $safeEmail,
+        $safePasswordHash
+    );
 
     createAuditLog(
         $pdo,
@@ -114,7 +128,7 @@ function updateProfile(PDO $pdo): void
         'user',
         (int) $authenticatedUser['id'],
         authClientIp(),
-        ['fields' => array_keys($fields)]
+        ['fields' => $changedFields]
     );
 
     authJsonResponse(200, [

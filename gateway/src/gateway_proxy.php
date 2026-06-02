@@ -72,7 +72,6 @@ function forwardRequest(string $targetUrl): void
 
     $responseBody = curl_exec($ch);
     $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE) ?: 502;
-    $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE) ?: 'application/json; charset=utf-8';
     $curlError = curl_error($ch);
 
     curl_close($ch);
@@ -91,6 +90,22 @@ function forwardRequest(string $targetUrl): void
         ]);
     }
 
+    $decoded = json_decode((string) $responseBody, true);
+
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        gatewayLogError('Serviço interno retornou resposta não JSON', [
+            'method' => $method,
+            'target_url' => $finalUrl,
+            'status_code' => $statusCode,
+        ]);
+
+        gatewayJsonResponse(502, [
+            'success' => false,
+            'message' => 'Resposta inválida do serviço interno.',
+            'errors' => ['gateway' => 'O serviço interno não retornou JSON válido.'],
+        ]);
+    }
+
     gatewayLogInfo('Requisição encaminhada', [
         'method' => $method,
         'target_url' => $finalUrl,
@@ -98,7 +113,8 @@ function forwardRequest(string $targetUrl): void
     ]);
 
     http_response_code($statusCode);
-    header('Content-Type: ' . $contentType);
-    echo $responseBody;
+    header('Content-Type: application/json; charset=utf-8');
+    header('X-Content-Type-Options: nosniff');
+    echo json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
