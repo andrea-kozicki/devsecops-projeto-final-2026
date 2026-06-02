@@ -6,6 +6,13 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-security-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   php-lint:
     name: PHP lint
@@ -43,7 +50,7 @@ jobs:
         run: composer validate --no-check-publish
 
       - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist
+        run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Run PHPUnit
         run: php vendor/bin/phpunit --testdox --display-all-issues
@@ -88,7 +95,14 @@ jobs:
         run: npm install -g snyk
 
       - name: Run Snyk Open Source
-        run: snyk test
+        run: snyk test --severity-threshold=high --json-file-output=snyk-open-source.json
+
+      - name: Upload Snyk Open Source artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: snyk-open-source-report
+          path: snyk-open-source.json
+          if-no-files-found: warn
 
   snyk-code:
     name: Snyk Code
@@ -109,18 +123,15 @@ jobs:
         run: npm install -g snyk
 
       - name: Run Snyk Code
-        shell: bash
-        run: |
-          set +e
-          snyk code test
-          status=$?
+        run: snyk code test --severity-threshold=high --json-file-output=snyk-code.json
 
-          if [ "$status" -eq 1 ]; then
-            echo "Snyk Code encontrou achados, mas o pipeline não será bloqueado."
-            exit 0
-          fi
-
-          exit "$status"
+      - name: Upload Snyk Code artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snyk-code-report
+          path: snyk-code.json
+          if-no-files-found: warn
 
   fossa:
     name: FOSSA
