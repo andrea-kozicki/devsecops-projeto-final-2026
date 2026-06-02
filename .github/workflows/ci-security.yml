@@ -109,8 +109,18 @@ jobs:
         run: npm install -g snyk
 
       - name: Run Snyk Code
-        continue-on-error: true
-        run: snyk code test
+        shell: bash
+        run: |
+          set +e
+          snyk code test
+          status=$?
+
+          if [ "$status" -eq 1 ]; then
+            echo "Snyk Code encontrou achados, mas o pipeline não será bloqueado."
+            exit 0
+          fi
+
+          exit "$status"
 
   fossa:
     name: FOSSA
