@@ -80,6 +80,13 @@ route-test-results/
 security-test-results/
 route_smoke_tests.fish
 security_smoke_tests.fish
+run-summary.txt
+run-verbose.txt
+run-full.log
+evidencias-actions/
+
+
+
 
 # =========================
 # Docker local, se usar depois
