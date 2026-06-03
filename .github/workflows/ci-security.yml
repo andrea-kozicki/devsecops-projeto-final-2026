@@ -20,7 +20,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -38,7 +38,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -63,7 +63,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -84,10 +84,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
 
@@ -95,14 +95,23 @@ jobs:
         run: npm install -g snyk
 
       - name: Run Snyk Open Source
-        run: snyk test --severity-threshold=high --json-file-output=snyk-open-source.json
+        shell: bash
+        run: |
+          mkdir -p reports
+          snyk test --all-projects --detection-depth=6 --severity-threshold=high --json-file-output=reports/snyk-open-source.json > reports/snyk-open-source.log 2>&1
+          status=$?
+          cat reports/snyk-open-source.log
+          exit $status
 
       - name: Upload Snyk Open Source artifact
-        uses: actions/upload-artifact@v4
+        if: always()
+        uses: actions/upload-artifact@v7
         with:
           name: snyk-open-source-report
-          path: snyk-open-source.json
-          if-no-files-found: warn
+          path: |
+            reports/snyk-open-source.log
+            reports/snyk-open-source.json
+          if-no-files-found: ignore
 
   snyk-code:
     name: Snyk Code
@@ -112,10 +121,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
 
@@ -123,15 +132,23 @@ jobs:
         run: npm install -g snyk
 
       - name: Run Snyk Code
-        run: snyk code test --severity-threshold=high --json-file-output=snyk-code.json
+        shell: bash
+        run: |
+          mkdir -p reports
+          snyk code test --severity-threshold=high --json-file-output=reports/snyk-code.json > reports/snyk-code.log 2>&1
+          status=$?
+          cat reports/snyk-code.log
+          exit $status
 
       - name: Upload Snyk Code artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: snyk-code-report
-          path: snyk-code.json
-          if-no-files-found: warn
+          path: |
+            reports/snyk-code.log
+            reports/snyk-code.json
+          if-no-files-found: ignore
 
   fossa:
     name: FOSSA
@@ -139,7 +156,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Run FOSSA analyze
         uses: fossas/fossa-action@main
