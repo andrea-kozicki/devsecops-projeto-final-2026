@@ -114,6 +114,11 @@ jobs:
             reports/snyk-open-source.log
             reports/snyk-open-source.json
           if-no-files-found: ignore
+      
+      - name: Confirm Snyk Open Source success
+        run: |
+          test -f reports/snyk-open-source.log
+          echo "Snyk Open Source final status: success"
 
   snyk-code:
     name: Snyk Code
@@ -143,6 +148,11 @@ jobs:
           cat reports/snyk-code.log
           echo "Snyk Code exit code: $status"
           exit $status
+
+      - name: Confirm Snyk Code success
+        run: |
+          test -f reports/snyk-code.log
+          echo "Snyk Code final status: success"
 
       - name: Upload Snyk Code artifact
         if: always()
