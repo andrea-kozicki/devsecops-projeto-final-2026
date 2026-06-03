@@ -52,7 +52,7 @@ function totpCode(string $secret, ?int $time = null, int $digits = 6, int $perio
     $binarySecret = base32Decode($secret);
     $counterBytes = pack('N*', 0) . pack('N*', $counter);
 
-    $hash = hash_hmac('sha1', $counterBytes, $binarySecret, true);
+    $hash = hash_hmac('sha256', $counterBytes, $binarySecret, true);
     $offset = ord(substr($hash, -1)) & 0x0F;
     $chunk = substr($hash, $offset, 4);
     $value = unpack('N', $chunk)[1] & 0x7FFFFFFF;
@@ -84,5 +84,5 @@ function buildOtpAuthUri(string $email, string $secret, string $issuer = 'StudyB
     $label = rawurlencode($issuer . ':' . $email);
     $issuerEncoded = rawurlencode($issuer);
 
-    return "otpauth://totp/{$label}?secret={$secret}&issuer={$issuerEncoded}&algorithm=SHA1&digits=6&period=30";
+    return "otpauth://totp/{$label}?secret={$secret}&issuer={$issuerEncoded}&algorithm=SHA256&digits=6&period=30";
 }
