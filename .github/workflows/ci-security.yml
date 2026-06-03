@@ -98,9 +98,11 @@ jobs:
         shell: bash
         run: |
           mkdir -p reports
+          echo '{}' > reports/snyk-open-source.json
           snyk test --all-projects --detection-depth=6 --severity-threshold=high --json-file-output=reports/snyk-open-source.json > reports/snyk-open-source.log 2>&1
           status=$?
           cat reports/snyk-open-source.log
+          echo "Snyk Open Source exit code: $status"
           exit $status
 
       - name: Upload Snyk Open Source artifact
@@ -135,9 +137,11 @@ jobs:
         shell: bash
         run: |
           mkdir -p reports
+          echo '{}' > reports/snyk-code.json
           snyk code test --severity-threshold=high --json-file-output=reports/snyk-code.json > reports/snyk-code.log 2>&1
           status=$?
           cat reports/snyk-code.log
+          echo "Snyk Code exit code: $status"
           exit $status
 
       - name: Upload Snyk Code artifact
