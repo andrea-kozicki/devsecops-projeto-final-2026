@@ -11,7 +11,7 @@ require_once __DIR__ . '/../src/auth_helpers.php';
 require_once __DIR__ . '/../src/auth_router.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$path = normalizeAuthPath($_SERVER['REQUEST_URI'] ?? '/');
+$path = authNormalizePath($_SERVER['REQUEST_URI'] ?? '/');
 
 if ($method === 'OPTIONS') {
     http_response_code(204);

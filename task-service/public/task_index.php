@@ -11,7 +11,7 @@ require_once __DIR__ . '/../src/task_helpers.php';
 require_once __DIR__ . '/../src/task_router.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$path = normalizeTaskPath($_SERVER['REQUEST_URI'] ?? '/');
+$path = taskNormalizePath($_SERVER['REQUEST_URI'] ?? '/');
 
 if ($method === 'OPTIONS') {
     http_response_code(204);
@@ -19,7 +19,7 @@ if ($method === 'OPTIONS') {
 }
 
 if ($method === 'GET' && $path === '/health') {
-    jsonResponse(200, [
+    taskJsonResponse(200, [
         'success' => true,
         'message' => 'Task service OK',
     ]);
@@ -33,7 +33,7 @@ try {
 } catch (Throwable $e) {
     error_log('[task-service] erro interno: ' . $e->getMessage());
 
-    jsonResponse(500, [
+    taskJsonResponse(500, [
         'success' => false,
         'message' => 'Erro interno do servidor.',
         'errors' => [],
