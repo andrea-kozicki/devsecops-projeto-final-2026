@@ -173,12 +173,12 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Run FOSSA analyze
-        uses: fossas/fossa-action@main
+        uses: fossas/fossa-action@v1.9.0
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
 
       - name: Run FOSSA test
-        uses: fossas/fossa-action@main
+        uses: fossas/fossa-action@v1.9.0
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
           run-tests: true
@@ -197,32 +197,45 @@ jobs:
 
     steps:
       - name: Download artifacts from this run
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           path: evidence/artifacts
 
       - name: Build Markdown evidence
         shell: bash
+        env:
+          GH_WORKFLOW: ${{ github.workflow }}
+          GH_RUN_ID: ${{ github.run_id }}
+          GH_RUN_NUMBER: ${{ github.run_number }}
+          GH_REF_NAME: ${{ github.ref_name }}
+          GH_SHA: ${{ github.sha }}
+          GH_ACTOR: ${{ github.actor }}
+          RESULT_PHP_LINT: ${{ needs['php-lint'].result }}
+          RESULT_PHPUNIT: ${{ needs.phpunit.result }}
+          RESULT_SEMGREP: ${{ needs.semgrep.result }}
+          RESULT_SNYK_OPEN_SOURCE: ${{ needs['snyk-open-source'].result }}
+          RESULT_SNYK_CODE: ${{ needs['snyk-code'].result }}
+          RESULT_FOSSA: ${{ needs.fossa.result }}
         run: |
           mkdir -p evidence
 
           cat > evidence/github-actions-summary.md <<EOF
           # Evidências da pipeline
 
-          - Workflow: ${{ github.workflow }}
-          - Run ID: ${{ github.run_id }}
-          - Run number: ${{ github.run_number }}
-          - Branch: ${{ github.ref_name }}
-          - Commit: ${{ github.sha }}
-          - Actor: ${{ github.actor }}
+          - Workflow: "$GH_WORKFLOW"
+          - Run ID: "$GH_RUN_ID"
+          - Run number: "$GH_RUN_NUMBER"
+          - Branch: "$GH_REF_NAME"
+          - Commit: "$GH_SHA"
+          - Actor: "$GH_ACTOR"
 
           ## Status dos jobs
-          - PHP lint: ${{ needs['php-lint'].result }}
-          - PHPUnit: ${{ needs['phpunit'].result }}
-          - Semgrep: ${{ needs['semgrep'].result }}
-          - Snyk Open Source: ${{ needs['snyk-open-source'].result }}
-          - Snyk Code: ${{ needs['snyk-code'].result }}
-          - FOSSA: ${{ needs['fossa'].result }}
+          - PHP lint: "$RESULT_PHP_LINT"
+          - PHPUnit: "$RESULT_PHPUNIT"
+          - Semgrep: "$RESULT_SEMGREP"
+          - Snyk Open Source: "$RESULT_SNYK_OPEN_SOURCE"
+          - Snyk Code: "$RESULT_SNYK_CODE"
+          - FOSSA: "$RESULT_FOSSA"
 
           ## Artifacts baixados
           EOF
@@ -233,25 +246,49 @@ jobs:
 
       - name: Build JSON evidence
         shell: bash
+        env:
+          GH_WORKFLOW: ${{ github.workflow }}
+          GH_RUN_ID: ${{ github.run_id }}
+          GH_RUN_NUMBER: ${{ github.run_number }}
+          GH_REF_NAME: ${{ github.ref_name }}
+          GH_SHA: ${{ github.sha }}
+          GH_ACTOR: ${{ github.actor }}
+          RESULT_PHP_LINT: ${{ needs['php-lint'].result }}
+          RESULT_PHPUNIT: ${{ needs.phpunit.result }}
+          RESULT_SEMGREP: ${{ needs.semgrep.result }}
+          RESULT_SNYK_OPEN_SOURCE: ${{ needs['snyk-open-source'].result }}
+          RESULT_SNYK_CODE: ${{ needs['snyk-code'].result }}
+          RESULT_FOSSA: ${{ needs.fossa.result }}
         run: |
-          cat > evidence/github-actions-summary.json <<EOF
-          {
-            "workflow": "${{ github.workflow }}",
-            "run_id": "${{ github.run_id }}",
-            "run_number": "${{ github.run_number }}",
-            "branch": "${{ github.ref_name }}",
-            "commit": "${{ github.sha }}",
-            "actor": "${{ github.actor }}",
-            "jobs": {
-              "php-lint": "${{ needs['php-lint'].result }}",
-              "phpunit": "${{ needs['phpunit'].result }}",
-              "semgrep": "${{ needs['semgrep'].result }}",
-              "snyk-open-source": "${{ needs['snyk-open-source'].result }}",
-              "snyk-code": "${{ needs['snyk-code'].result }}",
-              "fossa": "${{ needs['fossa'].result }}"
-            }
-          }
-          EOF
+          jq -n \
+            --arg workflow "$GH_WORKFLOW" \
+            --arg run_id "$GH_RUN_ID" \
+            --arg run_number "$GH_RUN_NUMBER" \
+            --arg branch "$GH_REF_NAME" \
+            --arg commit "$GH_SHA" \
+            --arg actor "$GH_ACTOR" \
+            --arg php_lint "$RESULT_PHP_LINT" \
+            --arg phpunit "$RESULT_PHPUNIT" \
+            --arg semgrep "$RESULT_SEMGREP" \
+            --arg snyk_open_source "$RESULT_SNYK_OPEN_SOURCE" \
+            --arg snyk_code "$RESULT_SNYK_CODE" \
+            --arg fossa "$RESULT_FOSSA" \
+            '{
+              workflow: $workflow,
+              run_id: $run_id,
+              run_number: $run_number,
+              branch: $branch,
+              commit: $commit,
+              actor: $actor,
+              jobs: {
+                "php-lint": $php_lint,
+                "phpunit": $phpunit,
+                "semgrep": $semgrep,
+                "snyk-open-source": $snyk_open_source,
+                "snyk-code": $snyk_code,
+                "fossa": $fossa
+              }
+            }' > evidence/github-actions-summary.json
 
       - name: Upload CI evidence artifact
         uses: actions/upload-artifact@v7

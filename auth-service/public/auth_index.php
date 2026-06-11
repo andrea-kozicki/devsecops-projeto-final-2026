@@ -19,7 +19,7 @@ if ($method === 'OPTIONS') {
 }
 
 if ($method === 'GET' && $path === '/health') {
-    jsonResponse(200, [
+    authJsonResponse(200, [
         'success' => true,
         'message' => 'Auth service OK',
     ]);
@@ -33,7 +33,7 @@ try {
 } catch (Throwable $e) {
     error_log('[auth-service] erro interno: ' . $e->getMessage());
 
-    jsonResponse(500, [
+    authJsonResponse(500, [
         'success' => false,
         'message' => 'Erro interno do servidor.',
         'errors' => [],
