@@ -3,10 +3,12 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunClassInSeparateProcess;
+use PHPUnit\Framework\Attributes\TestDox;
 use PHPUnit\Framework\TestCase;
 
 #[RunClassInSeparateProcess]
 #[PreserveGlobalState(false)]
+#[TestDox('Cadastro de usuários')]
 final class CadastrarUsuarioTest extends TestCase
 {
     public static function setUpBeforeClass(): void
@@ -14,6 +16,7 @@ final class CadastrarUsuarioTest extends TestCase
         require_once dirname(__DIR__, 2) . '/auth-service/src/auth_helpers.php';
     }
 
+    #[TestDox('deve retornar erros quando campos obrigatórios não forem informados')]
     public function testRequireFieldsReturnsErrorsForMissingFields(): void
     {
         $data = [
@@ -28,16 +31,19 @@ final class CadastrarUsuarioTest extends TestCase
         $this->assertSame("O campo 'password' é obrigatório.", $errors['password']);
     }
 
+    #[TestDox('deve aceitar endereço de e-mail válido')]
     public function testValidateEmailAddressReturnsTrueForValidEmail(): void
     {
         $this->assertTrue(authValidateEmailAddress('meunome40@exemplo.com'));
     }
 
+    #[TestDox('deve rejeitar endereço de e-mail inválido')]
     public function testValidateEmailAddressReturnsFalseForInvalidEmail(): void
     {
         $this->assertFalse(authValidateEmailAddress('email_invalido'));
     }
 
+    #[TestDox('deve remover dados sensíveis da saída do usuário')]
     public function testSanitizeUserOutputReturnsExpectedStructure(): void
     {
         $user = [
@@ -66,6 +72,7 @@ final class CadastrarUsuarioTest extends TestCase
         $this->assertArrayNotHasKey('password_hash', $result);
     }
 
+    #[TestDox('deve normalizar rotas de autenticação removendo prefixos conhecidos')]
     public function testNormalizeAuthPathRemovesKnownPrefixes(): void
     {
         $this->assertSame('/auth/login', authNormalizePath('/internal-auth/auth/login'));
