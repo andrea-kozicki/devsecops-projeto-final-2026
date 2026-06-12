@@ -156,21 +156,56 @@ function setupHomeUserInfo() {
   setupLogoutButtons();
 }
 
+function isCurrentUserAdmin() {
+  const user = getStoredUser();
+  return Boolean(user && user.role === "admin");
+}
+
+function requireAdminOnPage(messageContainerId = "page-message") {
+  requireAuthOnPage();
+
+  if (!getStoredToken()) {
+    return false;
+  }
+
+  renderAdminLinks();
+
+  if (isCurrentUserAdmin()) {
+    return true;
+  }
+
+  if (messageContainerId) {
+    renderMessage(messageContainerId, "error", "Acesso restrito a administradores.");
+  }
+
+  setTimeout(() => {
+    window.location.href = "/tarefas";
+  }, 900);
+
+  return false;
+}
+
 function renderAdminLinks() {
   const target = document.getElementById("admin-links");
   if (!target) return;
 
-  const user = getStoredUser();
+  target.replaceChildren();
 
-  if (!user || user.role !== "admin") {
-    target.innerHTML = "";
+  if (!isCurrentUserAdmin()) {
     return;
   }
 
-  target.innerHTML = `
-    <a class="button secondary" href="/usuarios">Usuários</a>
-    <a class="button secondary" href="/auditoria">Auditoria</a>
-  `;
+  const usersLink = document.createElement("a");
+  usersLink.className = "button secondary";
+  usersLink.href = "/usuarios";
+  usersLink.textContent = "Usuários";
+
+  const auditLink = document.createElement("a");
+  auditLink.className = "button secondary";
+  auditLink.href = "/auditoria";
+  auditLink.textContent = "Auditoria";
+
+  target.append(usersLink, document.createTextNode(" "), auditLink);
 }
 
 function setupLoginMfaForm() {

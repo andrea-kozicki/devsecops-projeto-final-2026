@@ -1,7 +1,11 @@
 document.addEventListener("DOMContentLoaded", async () => {
-  requireAuthOnPage();
   setupLogoutButtons();
   renderAdminLinks();
+
+  if (!requireAdminOnPage("users-message")) {
+    return;
+  }
+
   await loadUsers();
 });
 
@@ -16,32 +20,18 @@ async function loadUsers() {
     const users = result?.data || [];
     const currentUser = getStoredUser();
 
+    list.replaceChildren();
+
     if (!Array.isArray(users) || users.length === 0) {
-      list.innerHTML = `<p class="muted">Nenhum usuário encontrado.</p>`;
+      const empty = document.createElement("p");
+      empty.textContent = "Nenhum usuário encontrado.";
+      list.appendChild(empty);
       return;
     }
 
-    list.innerHTML = users.map((user) => {
-      const isSelf = currentUser && Number(currentUser.id) === Number(user.id);
-      const actionButton = user.is_active
-        ? `<button class="danger" data-block-user="${user.id}" ${isSelf ? 'disabled' : ''}>Bloquear</button>`
-        : `<button class="secondary" data-reactivate-user="${user.id}">Reativar</button>`;
-
-      return `
-        <article class="task-item">
-          <h3>${escapeHtml(user.name)}</h3>
-          <p>${escapeHtml(user.email)}</p>
-          <div class="task-meta">
-            <span>Perfil: ${escapeHtml(user.role)}</span>
-            <span>Ativo: ${user.is_active ? "Sim" : "Não"}</span>
-            <span>Criado em: ${escapeHtml(user.created_at || "—")}</span>
-          </div>
-          <div class="task-actions">
-            ${actionButton}
-          </div>
-        </article>
-      `;
-    }).join("");
+    users.forEach((user) => {
+      list.appendChild(createUserCard(user, currentUser));
+    });
 
     bindUserActions();
   } catch (error) {
@@ -51,6 +41,45 @@ async function loadUsers() {
 
     renderMessage("users-message", "error", message);
   }
+}
+
+function createUserCard(user, currentUser) {
+  const card = document.createElement("article");
+  card.className = "card";
+
+  const title = document.createElement("h3");
+  title.textContent = user.name || "Usuário sem nome";
+
+  const email = document.createElement("p");
+  email.textContent = user.email || "E-mail não informado";
+
+  const meta = document.createElement("p");
+  meta.textContent = `Perfil: ${user.role || "—"} | Ativo: ${user.is_active ? "Sim" : "Não"} | Criado em: ${user.created_at || "—"}`;
+
+  card.append(title, email, meta);
+
+  const isSelf = currentUser && Number(currentUser.id) === Number(user.id);
+  const actions = document.createElement("p");
+
+  if (user.is_active) {
+    const blockButton = document.createElement("button");
+    blockButton.type = "button";
+    blockButton.className = "button danger";
+    blockButton.dataset.blockUser = String(user.id);
+    blockButton.textContent = isSelf ? "Não é possível bloquear a si mesma" : "Bloquear";
+    blockButton.disabled = Boolean(isSelf);
+    actions.appendChild(blockButton);
+  } else {
+    const reactivateButton = document.createElement("button");
+    reactivateButton.type = "button";
+    reactivateButton.className = "button secondary";
+    reactivateButton.dataset.reactivateUser = String(user.id);
+    reactivateButton.textContent = "Reativar";
+    actions.appendChild(reactivateButton);
+  }
+
+  card.appendChild(actions);
+  return card;
 }
 
 function bindUserActions() {
