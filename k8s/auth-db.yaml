@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-db
+  namespace: studyboard
+  labels:
+    app: auth-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-db
+  template:
+    metadata:
+      labels:
+        app: auth-db
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mariadb
+          image: mariadb:11.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: mysql
+              containerPort: 3306
+          env:
+            - name: MARIADB_DATABASE
+              value: studyboard_auth
+            - name: MARIADB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: studyboard-secret
+                  key: AUTH_DB_USER
+            - name: MARIADB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: studyboard-secret
+                  key: AUTH_DB_PASS
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: studyboard-secret
+                  key: MARIADB_ROOT_PASSWORD
+          volumeMounts:
+            - name: auth-db-init
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+            - name: auth-db-data
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: auth-db-init
+          configMap:
+            name: auth-db-init
+        - name: auth-db-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-db
+  namespace: studyboard
+  labels:
+    app: auth-db
+spec:
+  type: ClusterIP
+  selector:
+    app: auth-db
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: mysql

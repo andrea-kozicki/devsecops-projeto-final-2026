@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tasks-db-init
+  namespace: studyboard
+  labels:
+    app.kubernetes.io/name: studyboard
+    app.kubernetes.io/component: tasks-db
+data:
+  01-tasks-schema.sql: |
+    CREATE DATABASE IF NOT EXISTS studyboard_tasks
+      CHARACTER SET utf8mb4
+      COLLATE utf8mb4_unicode_ci;
+
+    USE studyboard_tasks;
+
+    CREATE TABLE IF NOT EXISTS tasks (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        user_id INT UNSIGNED NOT NULL,
+        title VARCHAR(150) NOT NULL,
+        description TEXT NULL,
+        priority ENUM('baixa', 'media', 'alta') NOT NULL DEFAULT 'media',
+        status ENUM('pendente', 'em_andamento', 'concluida') NOT NULL DEFAULT 'pendente',
+        due_date DATE NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB;
+
+    CREATE TABLE IF NOT EXISTS task_audit_logs (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        actor_user_id INT UNSIGNED NOT NULL,
+        task_id BIGINT UNSIGNED NULL,
+        event_type VARCHAR(80) NOT NULL,
+        ip_address VARCHAR(45) NOT NULL,
+        details LONGTEXT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_task_audit_created_at (created_at),
+        INDEX idx_task_audit_actor_user_id (actor_user_id),
+        INDEX idx_task_audit_task_id (task_id),
+        INDEX idx_task_audit_event_type (event_type)
+    ) ENGINE=InnoDB;
+
+    CREATE INDEX idx_tasks_user_id ON tasks(user_id);
+    CREATE INDEX idx_tasks_status ON tasks(status);
+    CREATE INDEX idx_tasks_priority ON tasks(priority);
+    CREATE INDEX idx_tasks_due_date ON tasks(due_date);
+    CREATE INDEX idx_tasks_user_status_priority ON tasks(user_id, status, priority);

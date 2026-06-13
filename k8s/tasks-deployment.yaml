@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tasks-service
+  namespace: studyboard
+  labels:
+    app: tasks-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tasks-service
+  template:
+    metadata:
+      labels:
+        app: tasks-service
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 33
+        runAsGroup: 33
+        fsGroup: 33
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: tasks-service
+          image: studyboard-tasks:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: APP_ENV
+              value: production
+            - name: TASK_DB_HOST
+              value: tasks-db
+            - name: TASK_DB_PORT
+              value: "3306"
+            - name: TASK_DB_NAME
+              value: studyboard_tasks
+            - name: TASK_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: studyboard-secret
+                  key: TASK_DB_USER
+            - name: TASK_DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: studyboard-secret
+                  key: TASK_DB_PASS
+            - name: AUTH_SERVICE_URL
+              value: http://auth-service
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 40
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL

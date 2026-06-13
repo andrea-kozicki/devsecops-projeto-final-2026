@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: studyboard
+  labels:
+    app: auth-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 33
+        runAsGroup: 33
+        fsGroup: 33
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: auth-service
+          image: studyboard-auth:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: APP_ENV
+              value: production
+            - name: AUTH_DB_HOST
+              value: auth-db
+            - name: AUTH_DB_PORT
+              value: "3306"
+            - name: AUTH_DB_NAME
+              value: studyboard_auth
+            - name: AUTH_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: studyboard-secret
+                  key: AUTH_DB_USER
+            - name: AUTH_DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: studyboard-secret
+                  key: AUTH_DB_PASS
+            - name: AUTH_TOKEN_TTL
+              value: "3600"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 40
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL

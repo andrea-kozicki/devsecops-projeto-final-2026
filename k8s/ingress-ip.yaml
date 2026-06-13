@@ -1,15 +1,12 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: studyboard-ingress
+  name: studyboard-ingress-ip
   namespace: studyboard
-  labels:
-    app.kubernetes.io/name: studyboard
 spec:
   ingressClassName: nginx
   rules:
-    - host: studyboard.local
-      http:
+    - http:
         paths:
           - path: /api
             pathType: Prefix

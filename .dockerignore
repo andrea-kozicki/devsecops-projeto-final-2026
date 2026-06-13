@@ -1,0 +1,12 @@
+.git
+.gitignore
+diagnostico-*.txt
+*.tar.gz
+*.zip
+
+**/*_config_local.php
+**/logs/*
+**/.env
+**/.env.*
+vendor/
+node_modules/

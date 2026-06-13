@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tasks-db
+  namespace: studyboard
+  labels:
+    app: tasks-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tasks-db
+  template:
+    metadata:
+      labels:
+        app: tasks-db
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mariadb
+          image: mariadb:11.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: mysql
+              containerPort: 3306
+          env:
+            - name: MARIADB_DATABASE
+              value: studyboard_tasks
+            - name: MARIADB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: studyboard-secret
+                  key: TASK_DB_USER
+            - name: MARIADB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: studyboard-secret
+                  key: TASK_DB_PASS
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: studyboard-secret
+                  key: MARIADB_ROOT_PASSWORD
+          volumeMounts:
+            - name: tasks-db-init
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+            - name: tasks-db-data
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: tasks-db-init
+          configMap:
+            name: tasks-db-init
+        - name: tasks-db-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tasks-db
+  namespace: studyboard
+  labels:
+    app: tasks-db
+spec:
+  type: ClusterIP
+  selector:
+    app: tasks-db
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: mysql

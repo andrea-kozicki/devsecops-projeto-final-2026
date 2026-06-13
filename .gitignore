@@ -97,3 +97,14 @@ docker-compose.override.yml
 # Arquivos compactados / artefatos
 # =========================
 *.tar.gz
+# Diagnósticos locais de Kubernetes/DevSecOps
+diagnostico-*.txt
+diagnostico_*.fish
+diff-para-commit-*.txt
+
+# Arquivos acidentais gerados por comandos de diagnóstico
+8.14.1
+On
+OpenSSL
+enabled
+no
