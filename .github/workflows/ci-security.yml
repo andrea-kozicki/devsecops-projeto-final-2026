@@ -173,12 +173,12 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Run FOSSA analyze
-        uses: fossas/fossa-action@v1.9.0
+        uses: fossas/fossa-action@main
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
 
       - name: Run FOSSA test
-        uses: fossas/fossa-action@v1.9.0
+        uses: fossas/fossa-action@main
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
           run-tests: true
