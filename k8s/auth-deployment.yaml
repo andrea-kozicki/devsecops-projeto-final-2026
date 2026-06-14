@@ -10,11 +10,30 @@ spec:
   selector:
     matchLabels:
       app: auth-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   template:
     metadata:
       labels:
         app: auth-service
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/agent-requests-cpu: "25m"
+        vault.hashicorp.com/agent-limits-cpu: "100m"
+        vault.hashicorp.com/agent-requests-mem: "32Mi"
+        vault.hashicorp.com/agent-limits-mem: "64Mi"
+        vault.hashicorp.com/role: "studyboard-auth"
+        vault.hashicorp.com/agent-inject-secret-auth.env: "secret/data/studyboard/auth-service"
+        vault.hashicorp.com/agent-inject-template-auth.env: |
+          {{- with secret "secret/data/studyboard/auth-service" -}}
+          export AUTH_DB_USER="{{ .Data.data.AUTH_DB_USER }}"
+          export AUTH_DB_PASS="{{ .Data.data.AUTH_DB_PASS }}"
+          {{- end }}
     spec:
+      serviceAccountName: auth-service-sa
       securityContext:
         runAsNonRoot: true
         runAsUser: 33
@@ -26,6 +45,9 @@ spec:
         - name: auth-service
           image: studyboard-auth:local
           imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - . /vault/secrets/auth.env && apache2-foreground
           ports:
             - name: http
               containerPort: 8080
@@ -38,16 +60,6 @@ spec:
               value: "3306"
             - name: AUTH_DB_NAME
               value: studyboard_auth
-            - name: AUTH_DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: studyboard-secret
-                  key: AUTH_DB_USER
-            - name: AUTH_DB_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: studyboard-secret
-                  key: AUTH_DB_PASS
             - name: AUTH_TOKEN_TTL
               value: "3600"
           readinessProbe:

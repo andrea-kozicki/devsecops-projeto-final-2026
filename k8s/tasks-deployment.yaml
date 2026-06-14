@@ -10,11 +10,30 @@ spec:
   selector:
     matchLabels:
       app: tasks-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   template:
     metadata:
       labels:
         app: tasks-service
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/agent-requests-cpu: "25m"
+        vault.hashicorp.com/agent-limits-cpu: "100m"
+        vault.hashicorp.com/agent-requests-mem: "32Mi"
+        vault.hashicorp.com/agent-limits-mem: "64Mi"
+        vault.hashicorp.com/role: "studyboard-tasks"
+        vault.hashicorp.com/agent-inject-secret-tasks.env: "secret/data/studyboard/tasks-service"
+        vault.hashicorp.com/agent-inject-template-tasks.env: |
+          {{- with secret "secret/data/studyboard/tasks-service" -}}
+          export TASK_DB_USER="{{ .Data.data.TASK_DB_USER }}"
+          export TASK_DB_PASS="{{ .Data.data.TASK_DB_PASS }}"
+          {{- end }}
     spec:
+      serviceAccountName: tasks-service-sa
       securityContext:
         runAsNonRoot: true
         runAsUser: 33
@@ -26,6 +45,9 @@ spec:
         - name: tasks-service
           image: studyboard-tasks:local
           imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - . /vault/secrets/tasks.env && apache2-foreground
           ports:
             - name: http
               containerPort: 8080
@@ -38,16 +60,6 @@ spec:
               value: "3306"
             - name: TASK_DB_NAME
               value: studyboard_tasks
-            - name: TASK_DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: studyboard-secret
-                  key: TASK_DB_USER
-            - name: TASK_DB_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: studyboard-secret
-                  key: TASK_DB_PASS
             - name: AUTH_SERVICE_URL
               value: http://auth-service
           readinessProbe:
