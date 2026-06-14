@@ -22,6 +22,9 @@ spec:
         - name: mariadb
           image: mariadb:11.4
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
           ports:
             - name: mysql
               containerPort: 3306
@@ -47,12 +50,34 @@ spec:
             - name: auth-db-init
               mountPath: /docker-entrypoint-initdb.d
               readOnly: true
+            - name: auth-db-tmp
+              mountPath: /tmp
+            - name: auth-db-var-tmp
+              mountPath: /var/tmp
+            - name: auth-db-run
+              mountPath: /run/mysqld
             - name: auth-db-data
               mountPath: /var/lib/mysql
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
       volumes:
         - name: auth-db-init
           configMap:
             name: auth-db-init
+        - name: auth-db-tmp
+          emptyDir:
+            medium: Memory
+        - name: auth-db-var-tmp
+          emptyDir:
+            medium: Memory
+        - name: auth-db-run
+          emptyDir:
+            medium: Memory
         - name: auth-db-data
           emptyDir: {}
 ---
