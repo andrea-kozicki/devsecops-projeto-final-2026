@@ -201,6 +201,9 @@ jobs:
 
       - name: Criar cluster Kubernetes temporário com kind
         uses: helm/kind-action@v1
+        with:
+          cluster_name: studyboard-ci
+          wait: 120s
 
       - name: Instalar Helm
         uses: azure/setup-helm@v4
@@ -222,10 +225,10 @@ jobs:
       - name: Carregar imagens Docker no kind
         shell: bash
         run: |
-          kind load docker-image studyboard-auth:local
-          kind load docker-image studyboard-tasks:local
-          kind load docker-image studyboard-gateway:local
-          kind load docker-image studyboard-web:local
+          kind load docker-image studyboard-auth:local --name studyboard-ci
+          kind load docker-image studyboard-tasks:local --name studyboard-ci
+          kind load docker-image studyboard-gateway:local --name studyboard-ci
+          kind load docker-image studyboard-web:local --name studyboard-ci
 
       - name: Instalar HashiCorp Vault no Kubernetes
         shell: bash
