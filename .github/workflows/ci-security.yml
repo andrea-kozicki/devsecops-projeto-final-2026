@@ -183,6 +183,212 @@ jobs:
           api-key: ${{ secrets.FOSSA_API_KEY }}
           run-tests: true
 
+
+  k8s-deploy-validation:
+    name: Validação de implantação Kubernetes com Vault
+    runs-on: ubuntu-latest
+    needs:
+      - php-lint
+      - phpunit
+      - semgrep
+      - snyk-open-source
+      - snyk-code
+      - fossa
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Criar cluster Kubernetes temporário com kind
+        uses: helm/kind-action@v1
+
+      - name: Instalar Helm
+        uses: azure/setup-helm@v4
+
+      - name: Verificar contexto Kubernetes
+        shell: bash
+        run: |
+          kubectl cluster-info
+          kubectl get nodes -o wide
+
+      - name: Construir imagens Docker locais
+        shell: bash
+        run: |
+          docker build -t studyboard-auth:local -f auth-service/Dockerfile .
+          docker build -t studyboard-tasks:local -f task-service/Dockerfile .
+          docker build -t studyboard-gateway:local -f gateway/Dockerfile .
+          docker build -t studyboard-web:local -f web/Dockerfile .
+
+      - name: Carregar imagens Docker no kind
+        shell: bash
+        run: |
+          kind load docker-image studyboard-auth:local
+          kind load docker-image studyboard-tasks:local
+          kind load docker-image studyboard-gateway:local
+          kind load docker-image studyboard-web:local
+
+      - name: Instalar HashiCorp Vault no Kubernetes
+        shell: bash
+        run: |
+          helm repo add hashicorp https://helm.releases.hashicorp.com
+          helm repo update
+
+          kubectl create namespace vault
+
+          helm install vault hashicorp/vault \
+            --namespace vault \
+            --set "server.dev.enabled=true" \
+            --set "server.dev.devRootToken=root" \
+            --set "injector.enabled=true" \
+            --set "ui.enabled=true"
+
+          kubectl rollout status deployment/vault-agent-injector -n vault --timeout=180s
+          kubectl wait --for=condition=Ready pod/vault-0 -n vault --timeout=180s
+
+          kubectl get pods -n vault -o wide
+          kubectl get svc -n vault
+
+      - name: Criar namespace e Secret de laboratório
+        shell: bash
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+
+          kubectl create secret generic studyboard-secret \
+            -n studyboard \
+            --from-literal=AUTH_DB_USER=studyboard_auth_app \
+            --from-literal=AUTH_DB_PASS=AuthSenha@2026 \
+            --from-literal=TASK_DB_USER=studyboard_task_app \
+            --from-literal=TASK_DB_PASS=TaskSenha@2026 \
+            --from-literal=MARIADB_ROOT_PASSWORD=RootSenha@2026 \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Configurar segredos, políticas e autenticação do Vault
+        shell: bash
+        run: |
+          kubectl create clusterrolebinding vault-tokenreviewer \
+            --clusterrole=system:auth-delegator \
+            --serviceaccount=vault:vault
+
+          TOKEN_REVIEW_JWT="$(kubectl create token vault -n vault)"
+
+          kubectl exec -n vault vault-0 -- sh -c 'export VAULT_TOKEN=root; vault kv put secret/studyboard/auth-service AUTH_DB_USER=studyboard_auth_app AUTH_DB_PASS=AuthSenha@2026'
+          kubectl exec -n vault vault-0 -- sh -c 'export VAULT_TOKEN=root; vault kv put secret/studyboard/tasks-service TASK_DB_USER=studyboard_task_app TASK_DB_PASS=TaskSenha@2026'
+
+          kubectl exec -i -n vault vault-0 -- sh -c 'export VAULT_TOKEN=root; vault policy write studyboard-auth -' <<'EOF'
+          path "secret/data/studyboard/auth-service" {
+            capabilities = ["read"]
+          }
+          EOF
+
+          kubectl exec -i -n vault vault-0 -- sh -c 'export VAULT_TOKEN=root; vault policy write studyboard-tasks -' <<'EOF'
+          path "secret/data/studyboard/tasks-service" {
+            capabilities = ["read"]
+          }
+          EOF
+
+          kubectl exec -n vault vault-0 -- sh -c 'export VAULT_TOKEN=root; vault auth enable kubernetes || true'
+
+          kubectl exec -n vault vault-0 -- sh -c "export VAULT_TOKEN=root; vault write auth/kubernetes/config \
+            token_reviewer_jwt='$TOKEN_REVIEW_JWT' \
+            kubernetes_host='https://kubernetes.default.svc:443' \
+            kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+
+          kubectl exec -n vault vault-0 -- sh -c 'export VAULT_TOKEN=root; vault write auth/kubernetes/role/studyboard-auth bound_service_account_names=auth-service-sa bound_service_account_namespaces=studyboard policies=studyboard-auth ttl=1h'
+
+          kubectl exec -n vault vault-0 -- sh -c 'export VAULT_TOKEN=root; vault write auth/kubernetes/role/studyboard-tasks bound_service_account_names=tasks-service-sa bound_service_account_namespaces=studyboard policies=studyboard-tasks ttl=1h'
+
+          kubectl exec -n vault vault-0 -- sh -c 'export VAULT_TOKEN=root; vault policy read studyboard-auth'
+          kubectl exec -n vault vault-0 -- sh -c 'export VAULT_TOKEN=root; vault policy read studyboard-tasks'
+
+      - name: Aplicar manifests Kubernetes do StudyBoard
+        shell: bash
+        run: |
+          for file in k8s/*.yaml; do
+            case "$file" in
+              "k8s/secret.yaml")
+                echo "Ignorando $file na pipeline: Secret é criado dinamicamente no job."
+                ;;
+              *)
+                echo "Aplicando $file"
+                kubectl apply -f "$file"
+                ;;
+            esac
+          done
+
+      - name: Aguardar rollouts dos Deployments
+        shell: bash
+        run: |
+          kubectl rollout status deployment/auth-db -n studyboard --timeout=240s
+          kubectl rollout status deployment/tasks-db -n studyboard --timeout=240s
+          kubectl rollout status deployment/auth-service -n studyboard --timeout=240s
+          kubectl rollout status deployment/tasks-service -n studyboard --timeout=240s
+          kubectl rollout status deployment/gateway -n studyboard --timeout=180s
+          kubectl rollout status deployment/web -n studyboard --timeout=180s
+
+          kubectl get pods -n studyboard -o wide
+          kubectl get deploy -n studyboard
+          kubectl get svc -n studyboard
+          kubectl get networkpolicy -n studyboard || true
+
+      - name: Validar injeção de segredos pelo Vault Agent
+        shell: bash
+        run: |
+          AUTH_POD="$(kubectl get pod -n studyboard -l app=auth-service -o jsonpath='{.items[0].metadata.name}')"
+          TASKS_POD="$(kubectl get pod -n studyboard -l app=tasks-service -o jsonpath='{.items[0].metadata.name}')"
+
+          echo "AUTH_POD=$AUTH_POD"
+          kubectl exec -n studyboard "$AUTH_POD" -c auth-service -- sh -c 'test -f /vault/secrets/auth.env'
+          kubectl exec -n studyboard "$AUTH_POD" -c auth-service -- sh -c 'sed -E "s/=.*/=***MASKED***/" /vault/secrets/auth.env'
+
+          echo "TASKS_POD=$TASKS_POD"
+          kubectl exec -n studyboard "$TASKS_POD" -c tasks-service -- sh -c 'test -f /vault/secrets/tasks.env'
+          kubectl exec -n studyboard "$TASKS_POD" -c tasks-service -- sh -c 'sed -E "s/=.*/=***MASKED***/" /vault/secrets/tasks.env'
+
+      - name: Testar API pelo Gateway
+        shell: bash
+        run: |
+          kubectl port-forward -n studyboard svc/gateway 8083:80 > /tmp/port-forward.log 2>&1 &
+          PF_PID=$!
+          trap 'kill "$PF_PID" || true' EXIT
+
+          sleep 10
+
+          curl -i --fail http://127.0.0.1:8083/api/health
+          curl -i --fail http://127.0.0.1:8083/api/ready
+
+          EMAIL="ci.vault.$(date +%s)@example.com"
+
+          curl -i --fail http://127.0.0.1:8083/api/auth/register \
+            -H "Content-Type: application/json" \
+            -d "{\"name\":\"CI Vault\",\"email\":\"$EMAIL\",\"password\":\"SenhaTeste@2026\"}"
+
+          curl -i --fail http://127.0.0.1:8083/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"$EMAIL\",\"password\":\"SenhaTeste@2026\"}"
+
+      - name: Gerar evidências Kubernetes e Vault
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p evidence/kubernetes
+
+          kubectl get nodes -o wide > evidence/kubernetes/nodes.txt || true
+          kubectl get pods -n vault -o wide > evidence/kubernetes/vault-pods.txt || true
+          kubectl get svc -n vault > evidence/kubernetes/vault-services.txt || true
+          kubectl get pods -n studyboard -o wide > evidence/kubernetes/studyboard-pods.txt || true
+          kubectl get deploy -n studyboard > evidence/kubernetes/studyboard-deployments.txt || true
+          kubectl get svc -n studyboard > evidence/kubernetes/studyboard-services.txt || true
+          kubectl get networkpolicy -n studyboard > evidence/kubernetes/studyboard-networkpolicies.txt || true
+          kubectl get events -n studyboard --sort-by=.lastTimestamp > evidence/kubernetes/studyboard-events.txt || true
+
+      - name: Upload das evidências Kubernetes e Vault
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k8s-deploy-evidence
+          path: evidence/kubernetes/
+          if-no-files-found: warn
+
   evidence:
     name: CI evidence
     runs-on: ubuntu-latest
@@ -194,6 +400,7 @@ jobs:
       - snyk-open-source
       - snyk-code
       - fossa
+      - k8s-deploy-validation
 
     steps:
       - name: Download artifacts from this run
@@ -216,6 +423,7 @@ jobs:
           RESULT_SNYK_OPEN_SOURCE: ${{ needs['snyk-open-source'].result }}
           RESULT_SNYK_CODE: ${{ needs['snyk-code'].result }}
           RESULT_FOSSA: ${{ needs.fossa.result }}
+          RESULT_K8S_DEPLOY_VALIDATION: ${{ needs['k8s-deploy-validation'].result }}
         run: |
           mkdir -p evidence
 
@@ -236,6 +444,7 @@ jobs:
           - Snyk Open Source: "$RESULT_SNYK_OPEN_SOURCE"
           - Snyk Code: "$RESULT_SNYK_CODE"
           - FOSSA: "$RESULT_FOSSA"
+          - Validação Kubernetes/Vault: "$RESULT_K8S_DEPLOY_VALIDATION"
 
           ## Artifacts baixados
           EOF
@@ -259,6 +468,7 @@ jobs:
           RESULT_SNYK_OPEN_SOURCE: ${{ needs['snyk-open-source'].result }}
           RESULT_SNYK_CODE: ${{ needs['snyk-code'].result }}
           RESULT_FOSSA: ${{ needs.fossa.result }}
+          RESULT_K8S_DEPLOY_VALIDATION: ${{ needs['k8s-deploy-validation'].result }}
         run: |
           jq -n \
             --arg workflow "$GH_WORKFLOW" \
@@ -273,6 +483,7 @@ jobs:
             --arg snyk_open_source "$RESULT_SNYK_OPEN_SOURCE" \
             --arg snyk_code "$RESULT_SNYK_CODE" \
             --arg fossa "$RESULT_FOSSA" \
+            --arg k8s_deploy_validation "$RESULT_K8S_DEPLOY_VALIDATION" \
             '{
               workflow: $workflow,
               run_id: $run_id,
@@ -286,7 +497,8 @@ jobs:
                 "semgrep": $semgrep,
                 "snyk-open-source": $snyk_open_source,
                 "snyk-code": $snyk_code,
-                "fossa": $fossa
+                "fossa": $fossa,
+                "k8s-deploy-validation": $k8s_deploy_validation
               }
             }' > evidence/github-actions-summary.json
 
