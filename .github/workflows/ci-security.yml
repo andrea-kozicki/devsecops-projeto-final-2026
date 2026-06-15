@@ -337,6 +337,42 @@ jobs:
           kubectl describe cronjob studyboard-backup -n studyboard
           kubectl get pvc studyboard-backup-pvc -n studyboard
 
+      - name: Validar injeção de segredos pelo Vault Agent
+        shell: bash
+        run: |
+          AUTH_POD="$(kubectl get pod -n studyboard -l app=auth-service -o jsonpath='{.items[0].metadata.name}')"
+          TASKS_POD="$(kubectl get pod -n studyboard -l app=tasks-service -o jsonpath='{.items[0].metadata.name}')"
+
+          echo "AUTH_POD=$AUTH_POD"
+          kubectl exec -n studyboard "$AUTH_POD" -c auth-service -- sh -c 'test -f /vault/secrets/auth.env'
+          kubectl exec -n studyboard "$AUTH_POD" -c auth-service -- sh -c 'sed -E "s/=.*/=***MASKED***/" /vault/secrets/auth.env'
+
+          echo "TASKS_POD=$TASKS_POD"
+          kubectl exec -n studyboard "$TASKS_POD" -c tasks-service -- sh -c 'test -f /vault/secrets/tasks.env'
+          kubectl exec -n studyboard "$TASKS_POD" -c tasks-service -- sh -c 'sed -E "s/=.*/=***MASKED***/" /vault/secrets/tasks.env'
+
+      - name: Testar API pelo Gateway
+        shell: bash
+        run: |
+          kubectl port-forward -n studyboard svc/gateway 8083:80 > /tmp/port-forward.log 2>&1 &
+          PF_PID=$!
+          trap 'kill "$PF_PID" || true' EXIT
+
+          sleep 10
+
+          curl -i --fail http://127.0.0.1:8083/api/health
+          curl -i --fail http://127.0.0.1:8083/api/ready
+
+          EMAIL="ci.vault.$(date +%s)@example.com"
+
+          curl -i --fail http://127.0.0.1:8083/api/auth/register \
+            -H "Content-Type: application/json" \
+            -d "{\"name\":\"CI Vault\",\"email\":\"$EMAIL\",\"password\":\"SenhaTeste@2026\"}"
+
+          curl -i --fail http://127.0.0.1:8083/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"$EMAIL\",\"password\":\"SenhaTeste@2026\"}"
+
       - name: Validar execução manual do backup
         shell: bash
         run: |
@@ -378,41 +414,6 @@ jobs:
 
           exit "$WAIT_STATUS"
 
-      - name: Validar injeção de segredos pelo Vault Agent
-        shell: bash
-        run: |
-          AUTH_POD="$(kubectl get pod -n studyboard -l app=auth-service -o jsonpath='{.items[0].metadata.name}')"
-          TASKS_POD="$(kubectl get pod -n studyboard -l app=tasks-service -o jsonpath='{.items[0].metadata.name}')"
-
-          echo "AUTH_POD=$AUTH_POD"
-          kubectl exec -n studyboard "$AUTH_POD" -c auth-service -- sh -c 'test -f /vault/secrets/auth.env'
-          kubectl exec -n studyboard "$AUTH_POD" -c auth-service -- sh -c 'sed -E "s/=.*/=***MASKED***/" /vault/secrets/auth.env'
-
-          echo "TASKS_POD=$TASKS_POD"
-          kubectl exec -n studyboard "$TASKS_POD" -c tasks-service -- sh -c 'test -f /vault/secrets/tasks.env'
-          kubectl exec -n studyboard "$TASKS_POD" -c tasks-service -- sh -c 'sed -E "s/=.*/=***MASKED***/" /vault/secrets/tasks.env'
-
-      - name: Testar API pelo Gateway
-        shell: bash
-        run: |
-          kubectl port-forward -n studyboard svc/gateway 8083:80 > /tmp/port-forward.log 2>&1 &
-          PF_PID=$!
-          trap 'kill "$PF_PID" || true' EXIT
-
-          sleep 10
-
-          curl -i --fail http://127.0.0.1:8083/api/health
-          curl -i --fail http://127.0.0.1:8083/api/ready
-
-          EMAIL="ci.vault.$(date +%s)@example.com"
-
-          curl -i --fail http://127.0.0.1:8083/api/auth/register \
-            -H "Content-Type: application/json" \
-            -d "{\"name\":\"CI Vault\",\"email\":\"$EMAIL\",\"password\":\"SenhaTeste@2026\"}"
-
-          curl -i --fail http://127.0.0.1:8083/api/auth/login \
-            -H "Content-Type: application/json" \
-            -d "{\"email\":\"$EMAIL\",\"password\":\"SenhaTeste@2026\"}"
 
       - name: Gerar evidências Kubernetes e Vault
         if: always()
