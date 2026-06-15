@@ -18,7 +18,13 @@ function listUsersAction(PDO $pdo): void
         ]);
     }
 
-    $users = listUsers($pdo);
+    $roleFilter = filter_input(INPUT_GET, 'role', FILTER_UNSAFE_RAW);
+
+    if (!is_string($roleFilter) || !in_array($roleFilter, ['admin', 'user'], true)) {
+        $roleFilter = null;
+    }
+
+    $users = listUsers($pdo, $roleFilter);
 
     createAuditLog(
         $pdo,
@@ -30,6 +36,7 @@ function listUsersAction(PDO $pdo): void
         authClientIp(),
         [
             'count' => count($users),
+            'role_filter' => $roleFilter ?? 'all',
             'actor_email' => $authenticatedUser['email'] ?? null,
         ]
     );

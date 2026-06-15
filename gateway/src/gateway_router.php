@@ -138,7 +138,26 @@ function dispatchGateway(array $config): void
         if ($method !== 'GET') {
             gatewayMethodNotAllowed(['GET']);
         }
-        forwardRequest($authBase . '/admin/users');
+
+        $usersQueryParams = [];
+        $role = filter_input(INPUT_GET, 'role', FILTER_UNSAFE_RAW);
+
+        if (is_string($role) && in_array($role, ['admin', 'user'], true)) {
+            $usersQueryParams['role'] = $role;
+        }
+
+        $usersUrl = $authBase . '/admin/users';
+
+        if ($usersQueryParams !== []) {
+            $usersUrl .= '?' . http_build_query(
+                $usersQueryParams,
+                '',
+                '&',
+                PHP_QUERY_RFC3986
+            );
+        }
+
+        forwardRequest($usersUrl);
     }
 
     if (preg_match('#^/admin/users/(\d+)/block$#', $path, $matches)) {

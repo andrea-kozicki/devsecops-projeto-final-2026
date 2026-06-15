@@ -150,3 +150,6 @@ validar_requisitos_studyboard_v*.sh
 *.bak-auditoria-*
 codigo-auditoria-para-patch.txt
 aplicar_patch_auditoria_filtros*.sh
+*.bak-users-role-filter-*
+codigo-usuarios-para-patch.txt
+aplicar_patch_usuarios_role_filter.sh

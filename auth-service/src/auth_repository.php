@@ -354,15 +354,39 @@ function updateUserProfile(
     return $updatedUser;
 }
 
-function listUsers(PDO $pdo): array
+function listUsers(PDO $pdo, ?string $roleFilter = null): array
 {
-    $sql = 'SELECT id, name, email, role, is_active, created_at, updated_at
-            FROM users
-            ORDER BY created_at DESC';
+    if ($roleFilter !== null && !in_array($roleFilter, ['admin', 'user'], true)) {
+        $roleFilter = null;
+    }
 
-    $stmt = $pdo->query($sql);
+    $stmt = $pdo->prepare(
+        'SELECT
+            id,
+            name,
+            email,
+            role,
+            is_active,
+            created_at,
+            updated_at
+         FROM users
+         WHERE (:role_filter IS NULL OR role = :role_value)
+         ORDER BY created_at DESC, id DESC'
+    );
+
+    if ($roleFilter === null) {
+        $stmt->bindValue(':role_filter', null, PDO::PARAM_NULL);
+        $stmt->bindValue(':role_value', null, PDO::PARAM_NULL);
+    } else {
+        $stmt->bindValue(':role_filter', $roleFilter, PDO::PARAM_STR);
+        $stmt->bindValue(':role_value', $roleFilter, PDO::PARAM_STR);
+    }
+
+    $stmt->execute();
+
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
 
 function updateUserActiveStatus(PDO $pdo, int $userId, bool $isActive): array
 {

@@ -6,8 +6,38 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
+  setupUsersFilters();
   await loadUsers();
 });
+
+function setupUsersFilters() {
+  const form = document.getElementById("users-filter-form");
+  const clearButton = document.getElementById("users-filter-clear");
+
+  if (form) {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      await loadUsers();
+    });
+  }
+
+  if (clearButton) {
+    clearButton.addEventListener("click", async () => {
+      const roleFilter = document.getElementById("users-role-filter");
+      if (roleFilter) {
+        roleFilter.value = "";
+      }
+      await loadUsers();
+    });
+  }
+}
+
+function getSelectedUserRoleFilter() {
+  const roleFilter = document.getElementById("users-role-filter");
+  const value = roleFilter ? roleFilter.value : "";
+
+  return value === "admin" || value === "user" ? value : "";
+}
 
 async function loadUsers() {
   const list = document.getElementById("users-list");
@@ -16,7 +46,9 @@ async function loadUsers() {
   clearMessage("users-message");
 
   try {
-    const result = await apiRequest("/admin/users");
+    const roleFilter = getSelectedUserRoleFilter();
+    const query = roleFilter ? `?role=${encodeURIComponent(roleFilter)}` : "";
+    const result = await apiRequest(`/admin/users${query}`);
     const users = result?.data || [];
     const currentUser = getStoredUser();
 

@@ -410,3 +410,31 @@ textarea {
 .audit-filters select {
   width: 100%;
 }
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  align-items: end;
+  margin: 14px 0 16px;
+}
+
+.filters-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filters-grid select,
+.filters-grid input {
+  width: 100%;
+}
+
