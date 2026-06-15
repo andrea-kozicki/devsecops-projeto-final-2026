@@ -133,3 +133,17 @@ evidencias-*.sh
 
 # Arquivos temporários de evidência/backup local
 evidencias-backup-*.txt
+# Certificados locais de desenvolvimento/mkcert
+certs/
+*.crt
+*.key
+*.pem
+
+# Evidências e saídas locais de validação
+validacao-studyboard*/
+evidencias-studyboard*/
+evidencias-*.tar.gz
+*_sanitizado.tar.gz
+
+# Versões intermediárias de scripts de validação
+validar_requisitos_studyboard_v*.sh

@@ -5,8 +5,15 @@ metadata:
   namespace: studyboard
   labels:
     app.kubernetes.io/name: studyboard
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - studyboard.local
+      secretName: studyboard-tls
   rules:
     - host: studyboard.local
       http:
