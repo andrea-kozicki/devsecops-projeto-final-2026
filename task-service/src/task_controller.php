@@ -19,16 +19,18 @@ function createTaskAction(PDO $pdo, array $config): void
     $status = trim((string) ($data['status'] ?? 'pendente'));
     $dueDate = trim((string) ($data['due_date'] ?? ''));
 
-    if (mb_strlen($title) > 150) {
+    if ($title === '') {
+        $errors['title'] = 'O título é obrigatório.';
+    } elseif (mb_strlen($title) > 150) {
         $errors['title'] = 'O título deve ter no máximo 150 caracteres.';
+    } elseif (taskContainsHtmlMarkup($title)) {
+        $errors['title'] = 'O título não pode conter marcação HTML.';
     }
 
     if (mb_strlen($description) > 2000) {
         $errors['description'] = 'A descrição deve ter no máximo 2000 caracteres.';
-    }
-
-    if ($title === '') {
-        $errors['title'] = 'O título é obrigatório.';
+    } elseif ($description !== '' && taskContainsHtmlMarkup($description)) {
+        $errors['description'] = 'A descrição não pode conter marcação HTML.';
     }
 
     if (!taskIsValidPriority($priority)) {
@@ -223,12 +225,30 @@ function updateTaskAction(PDO $pdo, array $config, int $taskId): void
 
     $errors = [];
 
-    if (array_key_exists('title', $data) && mb_strlen(trim((string) $data['title'])) > 150) {
-        $errors['title'] = 'O título deve ter no máximo 150 caracteres.';
+    if (array_key_exists('title', $data)) {
+        $title = trim((string) $data['title']);
+
+        if ($title === '') {
+            $errors['title'] = 'O título é obrigatório.';
+        } elseif (mb_strlen($title) > 150) {
+            $errors['title'] = 'O título deve ter no máximo 150 caracteres.';
+        } elseif (taskContainsHtmlMarkup($title)) {
+            $errors['title'] = 'O título não pode conter marcação HTML.';
+        }
+
+        $data['title'] = $title;
     }
 
-    if (array_key_exists('description', $data) && mb_strlen(trim((string) $data['description'])) > 2000) {
-        $errors['description'] = 'A descrição deve ter no máximo 2000 caracteres.';
+    if (array_key_exists('description', $data)) {
+        $description = trim((string) $data['description']);
+
+        if (mb_strlen($description) > 2000) {
+            $errors['description'] = 'A descrição deve ter no máximo 2000 caracteres.';
+        } elseif ($description !== '' && taskContainsHtmlMarkup($description)) {
+            $errors['description'] = 'A descrição não pode conter marcação HTML.';
+        }
+
+        $data['description'] = $description;
     }
 
     if (array_key_exists('priority', $data) && !taskIsValidPriority((string) $data['priority'])) {

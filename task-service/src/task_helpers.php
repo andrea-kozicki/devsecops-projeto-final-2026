@@ -91,6 +91,11 @@ function taskRequireFields(array $data, array $requiredFields): array
     return $errors;
 }
 
+function taskContainsHtmlMarkup(string $value): bool
+{
+    return str_contains($value, '<') || str_contains($value, '>');
+}
+
 function taskIsValidPriority(string $priority): bool
 {
     return in_array($priority, ['baixa', 'media', 'alta'], true);

@@ -60,6 +60,8 @@ function updateProfile(PDO $pdo): void
             $errors['name'] = 'O nome é obrigatório.';
         } elseif (mb_strlen($name) > 120) {
             $errors['name'] = 'O nome deve ter no máximo 120 caracteres.';
+        } elseif (authContainsHtmlMarkup($name)) {
+            $errors['name'] = 'O nome não pode conter marcação HTML.';
         } else {
             $safeName = $name;
             $changedFields[] = 'name';

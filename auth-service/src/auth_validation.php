@@ -33,3 +33,8 @@ function validateSixDigitCode(string $code): ?string
         ? null
         : 'Informe um código de 6 dígitos.';
 }
+function authContainsHtmlMarkup(string $value): bool
+{
+    return str_contains($value, '<') || str_contains($value, '>');
+}
+
