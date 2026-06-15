@@ -330,6 +330,29 @@ jobs:
           kubectl rollout status deployment/tasks-service -n studyboard --timeout=240s
           kubectl rollout status deployment/gateway -n studyboard --timeout=180s
           kubectl rollout status deployment/web -n studyboard --timeout=180s
+      - name: Validar CronJob de backup
+        shell: bash
+        run: |
+          kubectl get cronjob studyboard-backup -n studyboard
+          kubectl describe cronjob studyboard-backup -n studyboard
+          kubectl get pvc studyboard-backup-pvc -n studyboard
+
+      - name: Validar execução manual do backup
+        shell: bash
+        run: |
+          BACKUP_JOB="manual-backup-ci-${{ github.run_id }}"
+
+          kubectl create job "$BACKUP_JOB" \
+            --from=cronjob/studyboard-backup \
+            -n studyboard
+
+          kubectl wait --for=condition=complete \
+            job/"$BACKUP_JOB" \
+            -n studyboard \
+            --timeout=180s
+
+          kubectl logs job/"$BACKUP_JOB" -n studyboard
+
 
           kubectl get pods -n studyboard -o wide
           kubectl get deploy -n studyboard
