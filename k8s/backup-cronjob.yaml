@@ -1,0 +1,124 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: studyboard-backup-pvc
+  namespace: studyboard
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: studyboard-backup
+  namespace: studyboard
+spec:
+  schedule: "0 3 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: studyboard-backup
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            seccompProfile:
+              type: RuntimeDefault
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+          containers:
+            - name: backup
+              image: mariadb:11.4
+              imagePullPolicy: IfNotPresent
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+
+                  TS="$(date +%Y%m%d-%H%M%S)"
+                  WORK="/tmp/backup-${TS}"
+                  DEST="/backup"
+                  mkdir -p "$WORK" "$DEST"
+
+                  echo "[backup] Iniciando backup do StudyBoard em ${TS}"
+
+                  echo "[backup] Gerando dump do banco de autenticação..."
+                  mariadb-dump \
+                    -h auth-db \
+                    -u"$AUTH_DB_USER" \
+                    -p"$AUTH_DB_PASS" \
+                    --single-transaction \
+                    --skip-lock-tables \
+                    studyboard_auth > "$WORK/studyboard_auth.sql"
+
+                  echo "[backup] Gerando dump do banco de tarefas..."
+                  mariadb-dump \
+                    -h tasks-db \
+                    -u"$TASK_DB_USER" \
+                    -p"$TASK_DB_PASS" \
+                    --single-transaction \
+                    --skip-lock-tables \
+                    studyboard_tasks > "$WORK/studyboard_tasks.sql"
+
+                  echo "[backup] Compactando arquivos..."
+                  tar -czf "$DEST/studyboard-backup-${TS}.tar.gz" -C "$WORK" .
+
+                  echo "[backup] Calculando hash SHA-256..."
+                  sha256sum "$DEST/studyboard-backup-${TS}.tar.gz" > "$DEST/studyboard-backup-${TS}.tar.gz.sha256"
+
+                  echo "[backup] Removendo diretório temporário..."
+                  rm -rf "$WORK"
+
+                  echo "[backup] Backups existentes no PVC:"
+                  ls -lh "$DEST"
+
+                  echo "[backup] Backup concluído com sucesso."
+              env:
+                - name: AUTH_DB_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: studyboard-secret
+                      key: AUTH_DB_USER
+                - name: AUTH_DB_PASS
+                  valueFrom:
+                    secretKeyRef:
+                      name: studyboard-secret
+                      key: AUTH_DB_PASS
+                - name: TASK_DB_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: studyboard-secret
+                      key: TASK_DB_USER
+                - name: TASK_DB_PASS
+                  valueFrom:
+                    secretKeyRef:
+                      name: studyboard-secret
+                      key: TASK_DB_PASS
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backup
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: studyboard-backup-pvc
+            - name: tmp
+              emptyDir: {}

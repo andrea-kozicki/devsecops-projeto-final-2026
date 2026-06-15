@@ -60,6 +60,13 @@ p {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+#admin-links {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 a.button,
@@ -67,12 +74,25 @@ button {
   appearance: none;
   border: 0;
   border-radius: 10px;
-  padding: 10px 14px;
+  min-height: 40px;
+  padding: 0 14px;
   cursor: pointer;
   text-decoration: none;
   color: white;
   background: var(--primary);
+  font-family: inherit;
+  font-size: 16px;
   font-weight: 600;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+
+.nav-links a.button,
+.nav-links button {
+  white-space: nowrap;
 }
 
 a.button:hover,
