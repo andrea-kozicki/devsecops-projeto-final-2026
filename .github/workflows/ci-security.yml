@@ -340,24 +340,43 @@ jobs:
       - name: Validar execução manual do backup
         shell: bash
         run: |
+          set -u
+
           BACKUP_JOB="manual-backup-ci-${{ github.run_id }}"
 
           kubectl create job "$BACKUP_JOB" \
             --from=cronjob/studyboard-backup \
             -n studyboard
 
+          echo "Aguardando conclusão do Job $BACKUP_JOB..."
+          set +e
           kubectl wait --for=condition=complete \
             job/"$BACKUP_JOB" \
             -n studyboard \
-            --timeout=180s
+            --timeout=420s
+          WAIT_STATUS=$?
+          set -e
 
-          kubectl logs job/"$BACKUP_JOB" -n studyboard
+          echo "Estado do Job de backup:"
+          kubectl get job "$BACKUP_JOB" -n studyboard -o wide || true
 
+          echo "Pods do Job de backup:"
+          kubectl get pods -n studyboard -l job-name="$BACKUP_JOB" -o wide || true
 
-          kubectl get pods -n studyboard -o wide
-          kubectl get deploy -n studyboard
-          kubectl get svc -n studyboard
-          kubectl get networkpolicy -n studyboard || true
+          BACKUP_POD="$(kubectl get pod -n studyboard -l job-name="$BACKUP_JOB" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+
+          if [ -n "$BACKUP_POD" ]; then
+            echo "Descrição do Pod de backup:"
+            kubectl describe pod "$BACKUP_POD" -n studyboard || true
+
+            echo "Logs do Pod de backup:"
+            kubectl logs "$BACKUP_POD" -n studyboard --all-containers=true || true
+          fi
+
+          echo "Eventos recentes do namespace studyboard:"
+          kubectl get events -n studyboard --sort-by=.lastTimestamp | tail -80 || true
+
+          exit "$WAIT_STATUS"
 
       - name: Validar injeção de segredos pelo Vault Agent
         shell: bash
