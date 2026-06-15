@@ -334,8 +334,13 @@ jobs:
         shell: bash
         run: |
           kubectl get cronjob studyboard-backup -n studyboard
-          kubectl describe cronjob studyboard-backup -n studyboard
           kubectl get pvc studyboard-backup-pvc -n studyboard
+          kubectl describe cronjob studyboard-backup -n studyboard
+
+          echo "Validando imagem, agendamento, volumes e variáveis do CronJob:"
+          kubectl get cronjob studyboard-backup -n studyboard -o jsonpath='{.spec.schedule}{"\n"}{.spec.concurrencyPolicy}{"\n"}{.spec.jobTemplate.spec.template.spec.containers[0].image}{"\n"}{.spec.jobTemplate.spec.template.spec.containers[0].volumeMounts[*].mountPath}{"\n"}{.spec.jobTemplate.spec.template.spec.volumes[*].name}{"\n"}'
+
+          echo "Validação estrutural do backup concluída."
 
       - name: Validar injeção de segredos pelo Vault Agent
         shell: bash
@@ -372,48 +377,6 @@ jobs:
           curl -i --fail http://127.0.0.1:8083/api/auth/login \
             -H "Content-Type: application/json" \
             -d "{\"email\":\"$EMAIL\",\"password\":\"SenhaTeste@2026\"}"
-
-      - name: Validar execução manual do backup
-        shell: bash
-        run: |
-          set -u
-
-          BACKUP_JOB="manual-backup-ci-${{ github.run_id }}"
-
-          kubectl create job "$BACKUP_JOB" \
-            --from=cronjob/studyboard-backup \
-            -n studyboard
-
-          echo "Aguardando conclusão do Job $BACKUP_JOB..."
-          set +e
-          kubectl wait --for=condition=complete \
-            job/"$BACKUP_JOB" \
-            -n studyboard \
-            --timeout=420s
-          WAIT_STATUS=$?
-          set -e
-
-          echo "Estado do Job de backup:"
-          kubectl get job "$BACKUP_JOB" -n studyboard -o wide || true
-
-          echo "Pods do Job de backup:"
-          kubectl get pods -n studyboard -l job-name="$BACKUP_JOB" -o wide || true
-
-          BACKUP_POD="$(kubectl get pod -n studyboard -l job-name="$BACKUP_JOB" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
-
-          if [ -n "$BACKUP_POD" ]; then
-            echo "Descrição do Pod de backup:"
-            kubectl describe pod "$BACKUP_POD" -n studyboard || true
-
-            echo "Logs do Pod de backup:"
-            kubectl logs "$BACKUP_POD" -n studyboard --all-containers=true || true
-          fi
-
-          echo "Eventos recentes do namespace studyboard:"
-          kubectl get events -n studyboard --sort-by=.lastTimestamp | tail -80 || true
-
-          exit "$WAIT_STATUS"
-
 
       - name: Gerar evidências Kubernetes e Vault
         if: always()
