@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -41,7 +41,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -66,7 +66,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -87,7 +87,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -110,7 +110,7 @@ jobs:
 
       - name: Upload Snyk Open Source artifact
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v6
         with:
           name: snyk-open-source-report
           path: |
@@ -131,7 +131,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -159,7 +159,7 @@ jobs:
 
       - name: Upload Snyk Code artifact
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v6
         with:
           name: snyk-code-report
           path: |
@@ -173,7 +173,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
 
       - name: Run FOSSA analyze
         uses: fossas/fossa-action@main
@@ -200,7 +200,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Criar cluster Kubernetes temporário com kind
         uses: helm/kind-action@v1
@@ -209,7 +209,10 @@ jobs:
           wait: 120s
 
       - name: Instalar Helm
-        uses: azure/setup-helm@v4
+        shell: bash
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          helm version
 
       - name: Verificar contexto Kubernetes
         shell: bash
@@ -395,7 +398,7 @@ jobs:
 
       - name: Upload das evidências Kubernetes e Vault
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: k8s-deploy-evidence
           path: evidence/kubernetes/
@@ -515,7 +518,7 @@ jobs:
             }' > evidence/github-actions-summary.json
 
       - name: Upload CI evidence artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v6
         with:
           name: ci-evidence
           path: evidence/

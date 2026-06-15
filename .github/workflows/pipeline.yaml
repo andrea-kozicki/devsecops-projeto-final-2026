@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Baixar código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Verificar PHP
         run: php -v
@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Baixar código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Instalar Semgrep
         run: python3 -m pip install --upgrade semgrep
@@ -63,7 +63,7 @@ jobs:
 
       - name: Publicar relatórios do Semgrep
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: semgrep-reports
           path: |
@@ -76,7 +76,7 @@ jobs:
 
     steps:
       - name: Baixar código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Rodar análise SCA com FOSSA
         uses: fossas/fossa-action@main
@@ -98,7 +98,7 @@ jobs:
 
       - name: Publicar evidência da FOSSA
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: fossa-evidence
           path: reports/fossa-evidencia.txt
