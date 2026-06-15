@@ -159,8 +159,52 @@ function dispatchGateway(array $config): void
         if ($method !== 'GET') {
             gatewayMethodNotAllowed(['GET']);
         }
-        $queryString = $_SERVER['QUERY_STRING'] ?? '';
-        $auditUrl = $authBase . '/admin/audit' . ($queryString !== '' ? '?' . $queryString : '');
+
+        $auditQueryParams = [];
+
+        $userId = filter_input(INPUT_GET, 'user_id', FILTER_VALIDATE_INT, [
+            'options' => [
+                'min_range' => 1,
+                'max_range' => 2147483647,
+            ],
+        ]);
+
+        if ($userId !== false && $userId !== null) {
+            $auditQueryParams['user_id'] = (string) $userId;
+        }
+
+        $limit = filter_input(INPUT_GET, 'limit', FILTER_VALIDATE_INT, [
+            'options' => [
+                'min_range' => 1,
+                'max_range' => 500,
+            ],
+        ]);
+
+        if ($limit !== false && $limit !== null) {
+            $auditQueryParams['limit'] = (string) $limit;
+        }
+
+        $dateFrom = filter_input(INPUT_GET, 'date_from', FILTER_UNSAFE_RAW);
+        if (is_string($dateFrom) && preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $dateFrom) === 1) {
+            $auditQueryParams['date_from'] = $dateFrom;
+        }
+
+        $dateTo = filter_input(INPUT_GET, 'date_to', FILTER_UNSAFE_RAW);
+        if (is_string($dateTo) && preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $dateTo) === 1) {
+            $auditQueryParams['date_to'] = $dateTo;
+        }
+
+        $auditUrl = $authBase . '/admin/audit';
+
+        if ($auditQueryParams !== []) {
+            $auditUrl .= '?' . http_build_query(
+                $auditQueryParams,
+                '',
+                '&',
+                PHP_QUERY_RFC3986
+            );
+        }
+
         forwardRequest($auditUrl);
     }
 
