@@ -86,8 +86,6 @@ run-full.log
 evidencias-actions/
 
 
-
-
 # =========================
 # Docker local, se usar depois
 # =========================
@@ -108,3 +106,30 @@ On
 OpenSSL
 enabled
 no
+
+# =========================
+# Evidências locais / artefatos do relatório
+# =========================
+evidencias-*/
+evidencias_*/
+evidencias*.txt
+evidencias*.zip
+studyboard_figuras_*/
+studyboard_figuras_*.zip
+studyboard_secao9_figuras_*/
+studyboard_secao9_figuras_*.zip
+secao9_figuras_*.zip
+
+# Scripts locais de coleta/diagnóstico de evidências
+gerar_evidencias_*.sh
+coletar_evidencias_*.sh
+recoletar_evidencias_*.sh
+setup_studyboard_evidencias.sh
+evidencias_*.sh
+evidencias-*.sh
+
+# Patches locais gerados durante ajustes
+*.patch
+
+# Arquivos temporários de evidência/backup local
+evidencias-backup-*.txt
