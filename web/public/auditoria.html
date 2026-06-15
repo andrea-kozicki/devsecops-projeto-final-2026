@@ -21,6 +21,31 @@
 
     <div class="card">
       <h2>Eventos recentes</h2>
+
+      <form id="audit-filter-form" class="audit-filters">
+        <div class="form-group">
+          <label for="audit-date-from">Data inicial</label>
+          <input id="audit-date-from" name="date_from" type="date">
+        </div>
+
+        <div class="form-group">
+          <label for="audit-date-to">Data final</label>
+          <input id="audit-date-to" name="date_to" type="date">
+        </div>
+
+        <div class="form-group">
+          <label for="audit-user-filter">Usuário</label>
+          <select id="audit-user-filter" name="user_id">
+            <option value="">Todos os usuários</option>
+          </select>
+        </div>
+
+        <div class="filter-actions">
+          <button type="submit" class="button">Filtrar</button>
+          <button type="button" id="audit-filter-clear" class="button secondary">Limpar</button>
+        </div>
+      </form>
+
       <div id="audit-message" class="alert hidden"></div>
       <div id="audit-list" class="task-list"></div>
     </div>

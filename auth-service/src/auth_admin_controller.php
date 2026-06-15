@@ -151,7 +151,8 @@ function listAuditLogsAction(PDO $pdo): void
         ]);
     }
 
-    $logs = listAuditLogs($pdo, 100);
+    $filters = buildAuditFiltersFromRequest();
+    $logs = listAuditLogs($pdo, $filters);
 
     createAuditLog(
         $pdo,
@@ -163,6 +164,7 @@ function listAuditLogsAction(PDO $pdo): void
         authClientIp(),
         [
             'count' => count($logs),
+            'filters' => $filters,
             'actor_email' => $authenticatedUser['email'] ?? null,
         ]
     );
@@ -172,4 +174,57 @@ function listAuditLogsAction(PDO $pdo): void
         'message' => 'Auditoria carregada com sucesso.',
         'data' => $logs,
     ]);
+}
+
+function buildAuditFiltersFromRequest(): array
+{
+    $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 100;
+    $limit = max(1, min($limit, 500));
+
+    $filters = [
+        'limit' => $limit,
+    ];
+
+    $userId = trim((string) ($_GET['user_id'] ?? ''));
+    if ($userId !== '') {
+        if (!ctype_digit($userId) || (int) $userId <= 0) {
+            authJsonResponse(422, [
+                'success' => false,
+                'message' => 'Filtro de usuário inválido.',
+                'errors' => ['user_id' => 'Informe um ID de usuário válido.'],
+            ]);
+        }
+
+        $filters['user_id'] = (int) $userId;
+    }
+
+    $dateFrom = trim((string) ($_GET['date_from'] ?? ''));
+    if ($dateFrom !== '') {
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom)) {
+            authJsonResponse(422, [
+                'success' => false,
+                'message' => 'Data inicial inválida.',
+                'errors' => ['date_from' => 'Use o formato AAAA-MM-DD.'],
+            ]);
+        }
+
+        $filters['date_from'] = $dateFrom . ' 00:00:00';
+    }
+
+    $dateTo = trim((string) ($_GET['date_to'] ?? ''));
+    if ($dateTo !== '') {
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) {
+            authJsonResponse(422, [
+                'success' => false,
+                'message' => 'Data final inválida.',
+                'errors' => ['date_to' => 'Use o formato AAAA-MM-DD.'],
+            ]);
+        }
+
+        $filters['date_to'] = (new DateTimeImmutable($dateTo . ' 00:00:00'))
+            ->modify('+1 day')
+            ->format('Y-m-d H:i:s');
+    }
+
+    return $filters;
 }

@@ -44,12 +44,32 @@ function createAuditLog(
     ]);
 }
 
-function listAuditLogs(PDO $pdo, int $limit = 100): array
+function listAuditLogs(PDO $pdo, int|array $limitOrFilters = 100): array
 {
-    $limit = max(1, min($limit, 500));
+    $filters = is_array($limitOrFilters)
+        ? $limitOrFilters
+        : ['limit' => $limitOrFilters];
 
-    $stmt = $pdo->query(
-        "SELECT
+    $limit = max(1, min((int) ($filters['limit'] ?? 100), 500));
+    $where = [];
+    $params = [];
+
+    if (!empty($filters['user_id'])) {
+        $where[] = '(al.actor_user_id = :user_id OR al.target_user_id = :user_id)';
+        $params['user_id'] = (int) $filters['user_id'];
+    }
+
+    if (!empty($filters['date_from'])) {
+        $where[] = 'al.created_at >= :date_from';
+        $params['date_from'] = (string) $filters['date_from'];
+    }
+
+    if (!empty($filters['date_to'])) {
+        $where[] = 'al.created_at < :date_to';
+        $params['date_to'] = (string) $filters['date_to'];
+    }
+
+    $sql = "SELECT
             al.id,
             al.actor_user_id,
             al.target_user_id,
@@ -65,11 +85,21 @@ function listAuditLogs(PDO $pdo, int $limit = 100): array
             target.email AS target_email
          FROM audit_logs al
          LEFT JOIN users actor ON actor.id = al.actor_user_id
-         LEFT JOIN users target ON target.id = al.target_user_id
-         ORDER BY al.id DESC
-         LIMIT {$limit}"
-    );
+         LEFT JOIN users target ON target.id = al.target_user_id";
 
+    if (!empty($where)) {
+        $sql .= ' WHERE ' . implode(' AND ', $where);
+    }
+
+    $sql .= " ORDER BY al.id DESC LIMIT {$limit}";
+
+    $stmt = $pdo->prepare($sql);
+
+    foreach ($params as $name => $value) {
+        $stmt->bindValue(':' . $name, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+    }
+
+    $stmt->execute();
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     foreach ($rows as &$row) {

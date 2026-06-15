@@ -159,7 +159,9 @@ function dispatchGateway(array $config): void
         if ($method !== 'GET') {
             gatewayMethodNotAllowed(['GET']);
         }
-        forwardRequest($authBase . '/admin/audit');
+        $queryString = $_SERVER['QUERY_STRING'] ?? '';
+        $auditUrl = $authBase . '/admin/audit' . ($queryString !== '' ? '?' . $queryString : '');
+        forwardRequest($auditUrl);
     }
 
     gatewayLogWarning('Rota não encontrada no gateway', [

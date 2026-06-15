@@ -147,3 +147,6 @@ evidencias-*.tar.gz
 
 # Versões intermediárias de scripts de validação
 validar_requisitos_studyboard_v*.sh
+*.bak-auditoria-*
+codigo-auditoria-para-patch.txt
+aplicar_patch_auditoria_filtros*.sh

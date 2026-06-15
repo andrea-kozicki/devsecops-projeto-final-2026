@@ -195,17 +195,33 @@ function renderAdminLinks() {
     return;
   }
 
-  const usersLink = document.createElement("a");
-  usersLink.className = "button secondary";
-  usersLink.href = "/usuarios";
-  usersLink.textContent = "Usuários";
+  const nav = target.closest(".nav-links") || target.parentElement;
+  const currentPath = window.location.pathname.replace(/\/$/, "") || "/";
 
-  const auditLink = document.createElement("a");
-  auditLink.className = "button secondary";
-  auditLink.href = "/auditoria";
-  auditLink.textContent = "Auditoria";
+  function appendAdminLink(href, label) {
+    const normalizedHref = href.replace(/\/$/, "") || "/";
 
-  target.append(usersLink, document.createTextNode(" "), auditLink);
+    if (currentPath === normalizedHref) {
+      return;
+    }
+
+    if (nav && nav.querySelector(`a[href="${href}"]`)) {
+      return;
+    }
+
+    if (target.childNodes.length > 0) {
+      target.appendChild(document.createTextNode(" "));
+    }
+
+    const link = document.createElement("a");
+    link.className = "button secondary";
+    link.href = href;
+    link.textContent = label;
+    target.appendChild(link);
+  }
+
+  appendAdminLink("/usuarios", "Usuários");
+  appendAdminLink("/auditoria", "Auditoria");
 }
 
 function setupLoginMfaForm() {
